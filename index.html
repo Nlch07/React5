@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>React Counter for Messenger</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+        }
+        .card {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 90%;
+            max-width: 300px;
+        }
+        h1 { font-size: 3rem; margin: 10px 0; color: #1a73e8; }
+        .buttons { display: flex; gap: 10px; justify-content: center; }
+        button {
+            padding: 15px 25px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            background-color: #1a73e8;
+            color: white;
+            transition: opacity 0.2s;
+        }
+        button:active { opacity: 0.7; }
+        .reset { background-color: #5f6368; margin-top: 15px; width: 100%; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        function App() {
+            // Инициализируем состояние из localStorage, если там что-то есть
+            const [count, setCount] = useState(() => {
+                const saved = localStorage.getItem("my-count");
+                return saved !== null ? parseInt(saved) : 0;
+            });
+
+            // Каждый раз, когда count меняется, сохраняем его
+            useEffect(() => {
+                localStorage.setItem("my-count", count);
+            }, [count]);
+
+            return (
+                <div className="card">
+                    <p>Счетчик (сохраняется):</p>
+                    <h1>{count}</h1>
+                    <div className="buttons">
+                        <button onClick={() => setCount(count - 1)}>-1</button>
+                        <button onClick={() => setCount(count + 1)}>+1</button>
+                    </div>
+                    <button className="reset" onClick={() => setCount(0)}>Сброс</button>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
