@@ -10,8 +10,8 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signInAnonymously, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getDatabase, ref, push, onValue, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDppgpIDC7lsqkyKanmWnt6aRmkV8sRfck",
@@ -28,172 +28,143 @@
         const db = getDatabase(app);
         const googleProvider = new GoogleAuthProvider();
 
-        window.fb = { auth, db, googleProvider, signInWithPopup, signInAnonymously, signOut, onAuthStateChanged, ref, push, onValue };
+        window.fb = { auth, db, googleProvider, signInWithPopup, signInAnonymously, signOut, onAuthStateChanged, updateProfile, ref, push, onValue, set };
     </script>
 
     <style>
         body { font-family: -apple-system, sans-serif; background: #e5ddd5; margin: 0; height: 100vh; overflow: hidden; }
         #root { width: 100%; max-width: 500px; height: 100%; margin: 0 auto; display: flex; flex-direction: column; background: white; position: relative; }
         header { background: #075e54; color: white; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; z-index: 10; }
-        .messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); }
+        .messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: #e5ddd5; }
         
-        .msg-container { display: flex; align-items: flex-end; }
+        .msg-container { display: flex; align-items: flex-end; margin-bottom: 5px; }
         .my-msg-container { justify-content: flex-end; }
         
-        .avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; font-size: 0.9rem; margin: 0 5px; flex-shrink: 0; }
+        .avatar { width: 35px; height: 35px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; cursor: pointer; flex-shrink: 0; }
         
-        .msg { background: white; padding: 6px 10px; border-radius: 8px; max-width: 85%; position: relative; box-shadow: 0 1px 2px rgba(0,0,0,0.15); transition: transform 0.2s; touch-action: pan-y; }
+        .msg { background: white; padding: 8px 12px; border-radius: 12px; max-width: 75%; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
         .my-msg { background: #dcf8c6; }
-        
-        .msg-content-wrapper { display: flex; flex-direction: column; } /* New wrapper for message content */
+        .msg-user { font-size: 0.75rem; font-weight: bold; display: block; margin-bottom: 4px; }
+        .msg-time { font-size: 0.6rem; color: #888; text-align: right; margin-top: 4px; }
 
-        .msg-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 2px; }
-        .msg-user { font-size: 0.75rem; font-weight: bold; }
-        .msg-time { font-size: 0.6rem; color: #888; align-self: flex-end; }
+        .input-area { background: #f0f0f0; padding: 10px; border-top: 1px solid #ddd; }
+        .input-row { display: flex; gap: 10px; }
+        input { flex: 1; border: none; padding: 12px; border-radius: 25px; outline: none; }
         
-        .reply-content { background: rgba(0,0,0,0.05); border-left: 4px solid #34b7f1; padding: 4px 8px; border-radius: 4px; margin-bottom: 5px; font-size: 0.85rem; }
-        .reply-user { font-weight: bold; font-size: 0.75rem; color: #34b7f1; }
-
-        .input-area { background: #f0f0f0; padding: 8px; }
-        .reply-preview { background: #e0e0e0; padding: 8px; border-left: 4px solid #34b7f1; display: flex; justify-content: space-between; border-radius: 4px 4px 0 0; }
-        
-        .input-row { display: flex; gap: 8px; align-items: center; }
-        input { flex: 1; border: none; padding: 10px 15px; border-radius: 20px; outline: none; font-size: 1rem; }
-        .btn-send { background: #075e54; color: white; border-radius: 50%; width: 45px; height: 45px; display: flex; justify-content: center; align-items: center; cursor: pointer; }
+        .overlay { position: absolute; inset: 0; background: white; z-index: 100; display: flex; flex-direction: column; padding: 40px; text-align: center; }
+        .btn { padding: 12px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        .btn-main { background: #075e54; color: white; }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef, useMemo } = React;
+        const { useState, useEffect, useRef } = React;
 
-        // Генерация случайного цвета на основе строки
-        const getRandomColor = (str) => {
+        const getColor = (uid) => {
             let hash = 0;
-            for (let i = 0; i < str.length; i++) {
-                hash = str.charCodeAt(i) + ((hash << 5) - hash);
-            }
-            let color = '#';
-            for (let i = 0; i < 3; i++) {
-                let value = (hash >> (i * 8)) & 0xFF;
-                color += ('00' + value.toString(16)).substr(-2);
-            }
-            return color;
-        };
-
-        // Компонент Аватар
-        const Avatar = ({ name, uid, isCurrentUser }) => {
-            const initial = name ? name.charAt(0).toUpperCase() : '';
-            const color = isCurrentUser ? '#128c7e' : getRandomColor(uid); // Свои аватары зеленые
-            return (
-                <div className="avatar" style={{ backgroundColor: color }}>
-                    {initial}
-                </div>
-            );
+            for (let i = 0; i < uid.length; i++) hash = uid.charCodeAt(i) + ((hash << 5) - hash);
+            return `hsl(${Math.abs(hash) % 360}, 60%, 40%)`;
         };
 
         function App() {
             const [user, setUser] = useState(null);
+            const [tempName, setTempName] = useState("");
             const [messages, setMessages] = useState([]);
             const [text, setText] = useState("");
-            const [replyTo, setReplyTo] = useState(null);
+            const [activeChat, setActiveChat] = useState("public"); // "public" или UID собеседника
+            const [chatPartner, setChatPartner] = useState(null);
             const scrollRef = useRef();
-            const touchStart = useRef(0);
 
             useEffect(() => {
-                const unsub = window.fb.onAuthStateChanged(window.fb.auth, (u) => setUser(u));
-                return () => unsub();
+                return window.fb.onAuthStateChanged(window.fb.auth, (u) => setUser(u));
             }, []);
 
             useEffect(() => {
-                if (!user) return;
-                const msgsRef = window.fb.ref(window.fb.db, 'messages');
-                return window.fb.onValue(msgsRef, (snapshot) => {
-                    const data = snapshot.val();
-                    if (data) {
-                        const list = Object.entries(data).map(([id, val]) => ({ id, ...val }));
-                        setMessages(list);
-                        setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-                    }
+                if (!user || !user.displayName) return;
+                
+                // Определяем путь в базе данных
+                let path = 'messages/public';
+                if (activeChat !== "public") {
+                    const chatId = [user.uid, activeChat].sort().join("_");
+                    path = `messages/private/${chatId}`;
+                }
+
+                const msgsRef = window.fb.ref(window.fb.db, path);
+                return window.fb.onValue(msgsRef, (snap) => {
+                    const data = snap.val();
+                    setMessages(data ? Object.values(data) : []);
+                    setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
                 });
-            }, [user]);
+            }, [user, activeChat]);
+
+            const saveName = async () => {
+                if (tempName.trim().length < 2) return alert("Имя слишком короткое");
+                await window.fb.updateProfile(window.fb.auth.currentUser, { displayName: tempName });
+                setUser({...window.fb.auth.currentUser, displayName: tempName});
+            };
 
             const sendMessage = () => {
                 if (!text.trim()) return;
-                const msgsRef = window.fb.ref(window.fb.db, 'messages');
-                window.fb.push(msgsRef, {
+                let path = 'messages/public';
+                if (activeChat !== "public") {
+                    const chatId = [user.uid, activeChat].sort().join("_");
+                    path = `messages/private/${chatId}`;
+                }
+                
+                window.fb.push(window.fb.ref(window.fb.db, path), {
                     text,
                     uid: user.uid,
-                    name: user.displayName || "Пользователь_" + user.uid.substring(0,4),
-                    time: Date.now(),
-                    reply: replyTo ? { text: replyTo.text, name: replyTo.name, uid: replyTo.uid } : null
+                    name: user.displayName,
+                    time: Date.now()
                 });
                 setText("");
-                setReplyTo(null);
             };
 
-            const formatTime = (ts) => {
-                return new Intl.DateTimeFormat('ru', { hour: '2-digit', minute: '2-digit' }).format(ts);
-            };
+            if (!user) return (
+                <div className="overlay">
+                    <h2>Astik Chat</h2>
+                    <button className="btn btn-main" onClick={() => window.fb.signInWithPopup(window.fb.auth, window.fb.googleProvider)}>Войти через Google</button>
+                    <button className="btn" style={{background:'#eee'}} onClick={() => window.fb.signInAnonymously(window.fb.auth)}>Анонимно</button>
+                </div>
+            );
 
-            const onTouchStart = (e) => touchStart.current = e.touches[0].clientX;
-            const onTouchEnd = (e, msg) => {
-                const distance = e.changedTouches[0].clientX - touchStart.current;
-                if (distance > 70) setReplyTo(msg);
-            };
-
-            if (!user) {
-                return (
-                    <div className="login-screen" style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'100vh'}}>
-                        <h2>Astik Chat</h2>
-                        <button style={{background: '#4285F4', color: '#fff'}} onClick={() => window.fb.signInWithPopup(window.fb.auth, window.fb.googleProvider)}>Войти через Google</button>
-                        <button style={{background: '#5f6368', color: '#fff'}} onClick={() => window.fb.signInAnonymously(window.fb.auth)}>Анонимно</button>
-                    </div>
-                );
-            }
+            if (!user.displayName) return (
+                <div className="overlay">
+                    <h2>Как тебя зовут?</h2>
+                    <input value={tempName} onChange={e => setTempName(e.target.value)} placeholder="Введи имя..." style={{background: '#f0f0f0'}} />
+                    <button className="btn btn-main" onClick={saveName}>Начать общение</button>
+                </div>
+            );
 
             return (
                 <>
                     <header>
-                        <b>{user.displayName || "Аноним"}</b>
+                        <div>
+                            {activeChat !== "public" && <span onClick={() => setActiveChat("public")} style={{marginRight: 10, cursor:'pointer'}}>←</span>}
+                            <b>{activeChat === "public" ? "Общий чат" : `Чат с ${chatPartner}`}</b>
+                        </div>
                         <button onClick={() => window.fb.signOut(window.fb.auth)}>Выход</button>
                     </header>
                     
                     <div className="messages">
-                        {messages.map((m) => {
-                            const isCurrentUser = m.uid === user.uid;
-                            const userNameColor = isCurrentUser ? '#128c7e' : getRandomColor(m.uid); // Цвет ника
+                        {messages.map((m, i) => {
+                            const isMe = m.uid === user.uid;
                             return (
-                                <div key={m.id} className={`msg-container ${isCurrentUser ? 'my-msg-container' : ''}`}>
-                                    {!isCurrentUser && <Avatar name={m.name} uid={m.uid} isCurrentUser={false} />}
-                                    <div 
-                                        className={`msg ${isCurrentUser ? 'my-msg' : ''}`}
-                                        onTouchStart={onTouchStart}
-                                        onTouchEnd={(e) => onTouchEnd(e, m)}
-                                        onDoubleClick={() => setReplyTo(m)}
-                                    >
-                                        <div className="msg-content-wrapper">
-                                            <div className="msg-header">
-                                                <span className="msg-user" style={{color: userNameColor}}>
-                                                    {m.name}
-                                                </span>
-                                            </div>
-                                            
-                                            {m.reply && (
-                                                <div className="reply-content">
-                                                    <div className="reply-user" style={{color: getRandomColor(m.reply.uid)}}>{m.reply.name}</div>
-                                                    <div>{m.reply.text.substring(0, 50)}{m.reply.text.length > 50 ? '...' : ''}</div>
-                                                </div>
-                                            )}
-                                            
-                                            <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-end', gap: '10px'}}>
-                                                <span>{m.text}</span>
-                                                <span className="msg-time">{formatTime(m.time)}</span>
-                                            </div>
+                                <div key={i} className={`msg-container ${isMe ? 'my-msg-container' : ''}`}>
+                                    {!isMe && (
+                                        <div className="avatar" style={{background: getColor(m.uid)}} 
+                                             onClick={() => { setActiveChat(m.uid); setChatPartner(m.name); }}>
+                                            {m.name[0].toUpperCase()}
                                         </div>
+                                    )}
+                                    <div className={`msg ${isMe ? 'my-msg' : ''}`}>
+                                        <span className="msg-user" style={{color: getColor(m.uid)}}>{m.name}</span>
+                                        <div>{m.text}</div>
+                                        <div className="msg-time">{new Date(m.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
                                     </div>
-                                    {isCurrentUser && <Avatar name={m.name} uid={m.uid} isCurrentUser={true} />}
+                                    {isMe && <div className="avatar" style={{background: getColor(m.uid), marginLeft: 5}}>{m.name[0].toUpperCase()}</div>}
                                 </div>
                             );
                         })}
@@ -201,23 +172,9 @@
                     </div>
 
                     <div className="input-area">
-                        {replyTo && (
-                            <div className="reply-preview">
-                                <div>
-                                    <div style={{fontSize:'0.7rem', color:'#34b7f1'}}>Ответ пользователю {replyTo.name}</div>
-                                    <div style={{fontSize:'0.8rem', color:'#555'}}>{replyTo.text.substring(0,40)}{replyTo.text.length > 40 ? '...' : ''}</div>
-                                </div>
-                                <button onClick={() => setReplyTo(null)} style={{background:'none', color:'#888', padding:0, fontSize:'1.2rem'}}>✕</button>
-                            </div>
-                        )}
                         <div className="input-row">
-                            <input 
-                                value={text} 
-                                onChange={e => setText(e.target.value)} 
-                                onKeyPress={e => e.key === 'Enter' && sendMessage()} 
-                                placeholder="Сообщение..." 
-                            />
-                            <div className="btn-send" onClick={sendMessage}>➤</div>
+                            <input value={text} onChange={e => setText(e.target.value)} onKeyPress={e => e.key === 'Enter' && sendMessage()} placeholder="Написать..." />
+                            <button className="btn btn-main" style={{borderRadius:'50%', width:45}} onClick={sendMessage}>➤</button>
                         </div>
                     </div>
                 </>
