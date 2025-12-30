@@ -2,8 +2,9 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Astik Chat Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Astik Chat</title>
+    
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -32,28 +33,115 @@
     </script>
 
     <style>
-        body { font-family: -apple-system, sans-serif; background: #e5ddd5; margin: 0; height: 100vh; overflow: hidden; }
-        #root { width: 100%; max-width: 500px; height: 100%; margin: 0 auto; display: flex; flex-direction: column; background: white; position: relative; }
-        header { background: #075e54; color: white; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; z-index: 10; }
-        .messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: #e5ddd5; }
+        /* Обнуляем всё, чтобы не было прокрутки страницы */
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         
-        .msg-container { display: flex; align-items: flex-end; margin-bottom: 5px; }
+        html, body { 
+            margin: 0; 
+            padding: 0; 
+            width: 100%; 
+            height: 100%; 
+            overflow: hidden; /* Запрещаем общий скролл страницы */
+            background-color: #075e54; 
+        }
+
+        #root { 
+            width: 100%; 
+            height: 100dvh; /* Dynamic Viewport Height для мобилок */
+            display: flex; 
+            flex-direction: column; 
+            background: #e5ddd5;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        header { 
+            background: #075e54; 
+            color: white; 
+            padding: 12px 15px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 10;
+        }
+
+        .messages { 
+            flex: 1; 
+            overflow-y: auto; /* Скролл только внутри сообщений */
+            padding: 15px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 8px;
+            background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
+            background-size: contain;
+        }
+        
+        .msg-container { display: flex; align-items: flex-end; margin-bottom: 2px; }
         .my-msg-container { justify-content: flex-end; }
         
-        .avatar { width: 35px; height: 35px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; cursor: pointer; flex-shrink: 0; }
+        .avatar { 
+            width: 30px; height: 30px; border-radius: 50%; 
+            display: flex; justify-content: center; align-items: center; 
+            color: white; font-size: 0.8rem; font-weight: bold; 
+            cursor: pointer; flex-shrink: 0; margin-bottom: 2px;
+        }
         
-        .msg { background: white; padding: 8px 12px; border-radius: 12px; max-width: 75%; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
-        .my-msg { background: #dcf8c6; }
-        .msg-user { font-size: 0.75rem; font-weight: bold; display: block; margin-bottom: 4px; }
+        .msg { 
+            background: white; 
+            padding: 8px 12px; 
+            border-radius: 12px; 
+            max-width: 80%; 
+            box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        .my-msg { background: #dcf8c6; border-bottom-right-radius: 2px; }
+        .other-msg { border-bottom-left-radius: 2px; }
+
+        .msg-user { font-size: 0.7rem; font-weight: bold; display: block; margin-bottom: 3px; }
         .msg-time { font-size: 0.6rem; color: #888; text-align: right; margin-top: 4px; }
 
-        .input-area { background: #f0f0f0; padding: 10px; border-top: 1px solid #ddd; }
-        .input-row { display: flex; gap: 10px; }
-        input { flex: 1; border: none; padding: 12px; border-radius: 25px; outline: none; }
-        
-        .overlay { position: absolute; inset: 0; background: white; z-index: 100; display: flex; flex-direction: column; padding: 40px; text-align: center; }
-        .btn { padding: 12px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; margin-top: 10px; }
-        .btn-main { background: #075e54; color: white; }
+        .input-area { 
+            background: #f0f0f0; 
+            padding: 10px 15px; 
+            padding-bottom: env(safe-area-inset-bottom, 10px); /* Учитываем "челку" снизу на iPhone */
+            display: flex; 
+            gap: 10px; 
+            align-items: center;
+        }
+
+        input { 
+            flex: 1; 
+            border: none; 
+            padding: 12px 18px; 
+            border-radius: 25px; 
+            outline: none; 
+            font-size: 16px; /* 16px предотвращает авто-зум в iOS */
+        }
+
+        .btn-send { 
+            background: #075e54; 
+            color: white; 
+            border: none; 
+            width: 45px; 
+            height: 45px; 
+            border-radius: 50%; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+            font-size: 1.2rem;
+        }
+
+        .overlay { 
+            position: fixed; inset: 0; background: white; z-index: 100; 
+            display: flex; flex-direction: column; justify-content: center; 
+            padding: 30px; text-align: center; 
+        }
+
+        .btn-auth { 
+            padding: 15px; border-radius: 10px; border: none; 
+            font-weight: bold; margin-bottom: 15px; cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -65,15 +153,15 @@
         const getColor = (uid) => {
             let hash = 0;
             for (let i = 0; i < uid.length; i++) hash = uid.charCodeAt(i) + ((hash << 5) - hash);
-            return `hsl(${Math.abs(hash) % 360}, 60%, 40%)`;
+            return `hsl(${Math.abs(hash) % 360}, 65%, 35%)`;
         };
 
         function App() {
             const [user, setUser] = useState(null);
-            const [tempName, setTempName] = useState("");
             const [messages, setMessages] = useState([]);
             const [text, setText] = useState("");
-            const [activeChat, setActiveChat] = useState("public"); // "public" или UID собеседника
+            const [tempName, setTempName] = useState("");
+            const [activeChat, setActiveChat] = useState("public");
             const [chatPartner, setChatPartner] = useState(null);
             const scrollRef = useRef();
 
@@ -83,14 +171,7 @@
 
             useEffect(() => {
                 if (!user || !user.displayName) return;
-                
-                // Определяем путь в базе данных
-                let path = 'messages/public';
-                if (activeChat !== "public") {
-                    const chatId = [user.uid, activeChat].sort().join("_");
-                    path = `messages/private/${chatId}`;
-                }
-
+                let path = activeChat === "public" ? 'messages/public' : `messages/private/${[user.uid, activeChat].sort().join("_")}`;
                 const msgsRef = window.fb.ref(window.fb.db, path);
                 return window.fb.onValue(msgsRef, (snap) => {
                     const data = snap.val();
@@ -100,41 +181,33 @@
             }, [user, activeChat]);
 
             const saveName = async () => {
-                if (tempName.trim().length < 2) return alert("Имя слишком короткое");
+                if (tempName.trim().length < 2) return alert("Минимум 2 буквы");
                 await window.fb.updateProfile(window.fb.auth.currentUser, { displayName: tempName });
                 setUser({...window.fb.auth.currentUser, displayName: tempName});
             };
 
             const sendMessage = () => {
                 if (!text.trim()) return;
-                let path = 'messages/public';
-                if (activeChat !== "public") {
-                    const chatId = [user.uid, activeChat].sort().join("_");
-                    path = `messages/private/${chatId}`;
-                }
-                
+                let path = activeChat === "public" ? 'messages/public' : `messages/private/${[user.uid, activeChat].sort().join("_")}`;
                 window.fb.push(window.fb.ref(window.fb.db, path), {
-                    text,
-                    uid: user.uid,
-                    name: user.displayName,
-                    time: Date.now()
+                    text, uid: user.uid, name: user.displayName, time: Date.now()
                 });
                 setText("");
             };
 
             if (!user) return (
                 <div className="overlay">
-                    <h2>Astik Chat</h2>
-                    <button className="btn btn-main" onClick={() => window.fb.signInWithPopup(window.fb.auth, window.fb.googleProvider)}>Войти через Google</button>
-                    <button className="btn" style={{background:'#eee'}} onClick={() => window.fb.signInAnonymously(window.fb.auth)}>Анонимно</button>
+                    <h1>Astik Chat</h1>
+                    <button className="btn-auth" style={{background:'#4285F4', color:'white'}} onClick={() => window.fb.signInWithPopup(window.fb.auth, window.fb.googleProvider)}>Войти через Google</button>
+                    <button className="btn-auth" style={{background:'#eee'}} onClick={() => window.fb.signInAnonymously(window.fb.auth)}>Анонимно</button>
                 </div>
             );
 
             if (!user.displayName) return (
                 <div className="overlay">
-                    <h2>Как тебя зовут?</h2>
-                    <input value={tempName} onChange={e => setTempName(e.target.value)} placeholder="Введи имя..." style={{background: '#f0f0f0'}} />
-                    <button className="btn btn-main" onClick={saveName}>Начать общение</button>
+                    <h2>Твоё имя:</h2>
+                    <input autoFocus value={tempName} onChange={e => setTempName(e.target.value)} style={{background: '#f0f0f0', marginBottom: 20}} />
+                    <button className="btn-auth" style={{background:'#075e54', color:'white'}} onClick={saveName}>Зайти в чат</button>
                 </div>
             );
 
@@ -142,10 +215,10 @@
                 <>
                     <header>
                         <div>
-                            {activeChat !== "public" && <span onClick={() => setActiveChat("public")} style={{marginRight: 10, cursor:'pointer'}}>←</span>}
-                            <b>{activeChat === "public" ? "Общий чат" : `Чат с ${chatPartner}`}</b>
+                            {activeChat !== "public" && <span onClick={() => setActiveChat("public")} style={{marginRight:12, fontSize:'1.2rem'}}>←</span>}
+                            <b>{activeChat === "public" ? "Общий чат" : chatPartner}</b>
                         </div>
-                        <button onClick={() => window.fb.signOut(window.fb.auth)}>Выход</button>
+                        <button onClick={() => window.fb.signOut(window.fb.auth)} style={{background:'none', border:'none', color:'white'}}>Выйти</button>
                     </header>
                     
                     <div className="messages">
@@ -153,18 +226,14 @@
                             const isMe = m.uid === user.uid;
                             return (
                                 <div key={i} className={`msg-container ${isMe ? 'my-msg-container' : ''}`}>
-                                    {!isMe && (
-                                        <div className="avatar" style={{background: getColor(m.uid)}} 
-                                             onClick={() => { setActiveChat(m.uid); setChatPartner(m.name); }}>
-                                            {m.name[0].toUpperCase()}
-                                        </div>
-                                    )}
-                                    <div className={`msg ${isMe ? 'my-msg' : ''}`}>
+                                    {!isMe && <div className="avatar" style={{background: getColor(m.uid), marginRight: 6}} 
+                                                  onClick={() => {setActiveChat(m.uid); setChatPartner(m.name)}}>{m.name[0]}</div>}
+                                    <div className={`msg ${isMe ? 'my-msg' : 'other-msg'}`}>
                                         <span className="msg-user" style={{color: getColor(m.uid)}}>{m.name}</span>
-                                        <div>{m.text}</div>
+                                        {m.text}
                                         <div className="msg-time">{new Date(m.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
                                     </div>
-                                    {isMe && <div className="avatar" style={{background: getColor(m.uid), marginLeft: 5}}>{m.name[0].toUpperCase()}</div>}
+                                    {isMe && <div className="avatar" style={{background: getColor(m.uid), marginLeft: 6}}>{m.name[0]}</div>}
                                 </div>
                             );
                         })}
@@ -172,10 +241,8 @@
                     </div>
 
                     <div className="input-area">
-                        <div className="input-row">
-                            <input value={text} onChange={e => setText(e.target.value)} onKeyPress={e => e.key === 'Enter' && sendMessage()} placeholder="Написать..." />
-                            <button className="btn btn-main" style={{borderRadius:'50%', width:45}} onClick={sendMessage}>➤</button>
-                        </div>
+                        <input value={text} onChange={e => setText(e.target.value)} onKeyPress={e => e.key === 'Enter' && sendMessage()} placeholder="Сообщение..." />
+                        <button className="btn-send" onClick={sendMessage}>➤</button>
                     </div>
                 </>
             );
