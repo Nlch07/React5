@@ -3,79 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>React Counter for Messenger</title>
+    <title>Astik Chat</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signInAnonymously, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDppgpIDC7lsqkyKanmWnt6aRmkV8sRfck",
+            authDomain: "astikchat-2356f.firebaseapp.com",
+            databaseURL: "https://astikchat-2356f-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "astikchat-2356f",
+            storageBucket: "astikchat-2356f.firebasestorage.app",
+            messagingSenderId: "481971458258",
+            appId: "1:481971458258:web:131953007028cc61be5d0b"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+        const googleProvider = new GoogleAuthProvider();
+
+        window.fb = { auth, db, googleProvider, signInWithPopup, signInAnonymously, signOut, onAuthStateChanged, ref, push, onValue };
+    </script>
+
     <style>
-        body {
-            font-family: sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f0f2f5;
-        }
-        .card {
-            background: white;
-            padding: 2rem;
-            border-radius: 15px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            text-align: center;
-            width: 90%;
-            max-width: 300px;
-        }
-        h1 { font-size: 3rem; margin: 10px 0; color: #1a73e8; }
-        .buttons { display: flex; gap: 10px; justify-content: center; }
-        button {
-            padding: 15px 25px;
-            font-size: 1.2rem;
-            cursor: pointer;
-            border: none;
-            border-radius: 8px;
-            background-color: #1a73e8;
-            color: white;
-            transition: opacity 0.2s;
-        }
-        button:active { opacity: 0.7; }
-        .reset { background-color: #5f6368; margin-top: 15px; width: 100%; }
+        body { font-family: -apple-system, sans-serif; background: #e5ddd5; margin: 0; display: flex; justify-content: center; height: 100vh; }
+        #root { width: 100%; max-width: 500px; display: flex; flex-direction: column; background: white; }
+        .login-screen { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; gap: 10px; }
+        header { background: #075e54; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 8px; background: #e5ddd5; }
+        .msg { background: white; padding: 8px 12px; border-radius: 8px; max-width: 80%; width: fit-content; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
+        .my-msg { align-self: flex-end; background: #dcf8c6; }
+        .msg-user { font-size: 0.7rem; color: #888; margin-bottom: 2px; }
+        .input-box { padding: 10px; display: flex; gap: 10px; background: #f0f0f0; }
+        input { flex: 1; border: none; padding: 10px; border-radius: 20px; outline: none; }
+        button { border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; }
+        .btn-send { background: #075e54; color: white; border-radius: 50%; }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useRef } = React;
 
         function App() {
-            // Инициализируем состояние из localStorage, если там что-то есть
-            const [count, setCount] = useState(() => {
-                const saved = localStorage.getItem("my-count");
-                return saved !== null ? parseInt(saved) : 0;
-            });
+            const [user, setUser] = useState(null);
+            const [messages, setMessages] = useState([]);
+            const [text, setText] = useState("");
+            const scrollRef = useRef();
 
-            // Каждый раз, когда count меняется, сохраняем его
             useEffect(() => {
-                localStorage.setItem("my-count", count);
-            }, [count]);
+                const unsub = window.fb.onAuthStateChanged(window.fb.auth, (u) => setUser(u));
+                return () => unsub();
+            }, []);
+
+            useEffect(() => {
+                if (!user) return;
+                const msgsRef = window.fb.ref(window.fb.db, 'messages');
+                return window.fb.onValue(msgsRef, (snapshot) => {
+                    const data = snapshot.val();
+                    if (data) {
+                        const list = Object.values(data);
+                        setMessages(list);
+                        setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+                    }
+                });
+            }, [user]);
+
+            const sendMessage = () => {
+                if (!text.trim()) return;
+                const msgsRef = window.fb.ref(window.fb.db, 'messages');
+                window.fb.push(msgsRef, {
+                    text,
+                    uid: user.uid,
+                    name: user.displayName || "Аноним",
+                    time: Date.now()
+                });
+                setText("");
+            };
+
+            if (!user) {
+                return (
+                    <div className="login-screen">
+                        <h2>Astik Chat</h2>
+                        <button style={{background: '#4285F4', color: '#fff'}} onClick={() => window.fb.signInWithPopup(window.fb.auth, window.fb.googleProvider)}>Войти через Google</button>
+                        <button style={{background: '#5f6368', color: '#fff'}} onClick={() => window.fb.signInAnonymously(window.fb.auth)}>Анонимно</button>
+                    </div>
+                );
+            }
 
             return (
-                <div className="card">
-                    <p>Счетчик (сохраняется):</p>
-                    <h1>{count}</h1>
-                    <div className="buttons">
-                        <button onClick={() => setCount(count - 1)}>-1</button>
-                        <button onClick={() => setCount(count + 1)}>+1</button>
+                <>
+                    <header>
+                        <span>{user.displayName || "Аноним"}</span>
+                        <button onClick={() => window.fb.signOut(window.fb.auth)}>Выход</button>
+                    </header>
+                    <div className="messages">
+                        {messages.map((m, i) => (
+                            <div key={i} className={`msg ${m.uid === user.uid ? 'my-msg' : ''}`}>
+                                <div className="msg-user">{m.name}</div>
+                                <div>{m.text}</div>
+                            </div>
+                        ))}
+                        <div ref={scrollRef} />
                     </div>
-                    <button className="reset" onClick={() => setCount(0)}>Сброс</button>
-                </div>
+                    <div className="input-box">
+                        <input value={text} onChange={e => setText(e.target.value)} onKeyPress={e => e.key === 'Enter' && sendMessage()} placeholder="Сообщение..." />
+                        <button className="btn-send" onClick={sendMessage}>➤</button>
+                    </div>
+                </>
             );
         }
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     </script>
 </body>
 </html>
