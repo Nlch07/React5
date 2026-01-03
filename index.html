@@ -12,7 +12,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getDatabase, ref, push, onValue, set, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, push, onValue, set, update, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDppgpIDC7lsqkyKanmWnt6aRmkV8sRfck",
@@ -28,69 +28,72 @@
         const auth = getAuth(app);
         const db = getDatabase(app);
         
-        // Экспортируем в window для доступа из Babel
         window.fb = { 
             auth, db, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, 
-            updateProfile, ref, push, onValue, set, update 
+            updateProfile, ref, push, onValue, set, update, get 
         };
     </script>
 
     <style>
-        :root { --main-blue: #1565C0; --bg: #f0f2f5; --green: #4CAF50; }
+        :root { --main-blue: #1565C0; --bg: #f0f2f5; --green: #4CAF50; --red: #ff3b30; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        html, body { height: 100%; margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f0f2f5; overflow: hidden; }
+        html, body { height: 100%; margin: 0; font-family: -apple-system, sans-serif; background: #f0f2f5; overflow: hidden; }
         
         #root { display: flex; flex-direction: column; height: 100vh; height: 100dvh; background: white; max-width: 500px; margin: 0 auto; position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
 
-        /* Дизайн входа */
+        /* Вход */
         .login-screen { position: fixed; inset: 0; background: linear-gradient(135deg, #1565C0 0%, #1e88e5 100%); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 1000; }
-        .login-card { background: white; padding: 40px 30px; border-radius: 28px; width: 100%; max-width: 360px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
-        .google-btn { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; padding: 14px; border: 1px solid #ddd; border-radius: 14px; background: white; font-size: 1rem; font-weight: 600; cursor: pointer; transition: 0.2s; margin-top: 20px; }
-        .google-btn:active { transform: scale(0.98); background: #f9f9f9; }
-        .google-btn img { width: 20px; height: 20px; }
+        .login-card { background: white; padding: 40px 30px; border-radius: 28px; width: 100%; max-width: 360px; text-align: center; }
+        .google-btn { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; padding: 14px; border: 1px solid #ddd; border-radius: 14px; background: white; font-weight: 600; cursor: pointer; margin-top: 20px; }
 
-        header { background: var(--main-blue); color: white; padding: 15px 20px; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; z-index: 10; }
-        .logo { font-size: 1.5rem; font-weight: 900; margin: 0; letter-spacing: -0.5px; }
+        header { background: var(--main-blue); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; z-index: 10; }
+        .logo { font-size: 1.5rem; font-weight: 900; margin: 0; }
 
         .top-menu { background: #fff; padding: 12px 15px; border-bottom: 1px solid #eee; }
         .menu-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-        .btn { border: none; background: #f0f2f5; color: #333; padding: 8px 16px; border-radius: 20px; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
-        .btn-primary { background: var(--main-blue); color: white; }
+        .btn { border: none; background: #f0f2f5; color: #333; padding: 8px 16px; border-radius: 20px; font-weight: 600; cursor: pointer; }
         .btn-online { background: var(--green); color: white; }
+        .search-input { width: 100%; padding: 12px 15px; border-radius: 12px; border: none; background: #f0f2f5; outline: none; }
 
-        .search-input { width: 100%; padding: 12px 15px; border-radius: 12px; border: none; background: #f0f2f5; outline: none; font-size: 0.95rem; }
-
-        /* Панель Онлайн */
+        /* Онлайн список */
         .online-panel { padding: 15px; background: #fff; border-bottom: 8px solid #f0f2f5; }
-        .section-title { font-size: 0.7rem; font-weight: 800; color: #999; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; display: block; }
-        .online-list { display: flex; gap: 15px; overflow-x: auto; padding-bottom: 5px; scrollbar-width: none; }
-        .online-list::-webkit-scrollbar { display: none; }
+        .section-title { font-size: 0.7rem; font-weight: 800; color: #999; text-transform: uppercase; margin-bottom: 10px; display: block; }
+        .online-list { display: flex; gap: 15px; overflow-x: auto; padding-bottom: 5px; }
         .online-user { display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; min-width: 65px; }
-        .online-user span { font-size: 0.75rem; font-weight: 500; color: #333; width: 65px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .online-user span { font-size: 0.75rem; width: 65px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-        .content-scroll { flex: 1; overflow-y: auto; background: white; }
+        .content-scroll { flex: 1; overflow-y: auto; }
         
-        /* Чат-список */
-        .chat-item { display: flex; align-items: center; padding: 15px; border-bottom: 1px solid #f5f5f5; cursor: pointer; transition: 0.2s; }
-        .chat-item:active { background: #f0f2f5; }
-        .avatar { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; flex-shrink: 0; font-size: 1.2rem; background: #ccc; position: relative; }
+        /* Список чатов */
+        .chat-item { display: flex; align-items: center; padding: 15px; border-bottom: 1px solid #f5f5f5; cursor: pointer; }
+        .avatar { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; flex-shrink: 0; background: #ccc; position: relative; }
         .online-indicator { position: absolute; bottom: 2px; right: 2px; width: 12px; height: 12px; background: var(--green); border: 2px solid white; border-radius: 50%; }
         .chat-info { flex: 1; margin-left: 15px; overflow: hidden; }
-        .chat-name { font-weight: 700; color: #1c1e21; display: block; margin-bottom: 4px; }
-        .chat-preview { font-size: 0.9rem; color: #65676b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+        .chat-name { font-weight: 700; display: block; margin-bottom: 2px; }
+        .chat-preview { font-size: 0.9rem; color: #65676b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
 
-        /* Окно сообщений */
+        /* КРАСНЫЙ КРУЖОК УВЕДОМЛЕНИЙ */
+        .notif-badge { background: var(--red); color: white; border-radius: 50%; min-width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold; margin-top: 5px; }
+
+        /* Окно чата */
         .chat-area { flex: 1; overflow-y: auto; background: #e5ddd5; padding: 15px; display: flex; flex-direction: column; gap: 8px; }
-        .msg-wrap { display: flex; width: 100%; }
+        .msg-wrap { display: flex; width: 100%; cursor: pointer; }
         .my-wrap { justify-content: flex-end; }
-        .msg-bubble { max-width: 80%; padding: 8px 12px; border-radius: 18px; font-size: 0.95rem; position: relative; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
+        .msg-bubble { max-width: 80%; padding: 8px 12px; border-radius: 18px; font-size: 0.95rem; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
         .my-bubble { background: #dcf8c6; border-bottom-right-radius: 4px; }
         .other-bubble { background: white; border-bottom-left-radius: 4px; }
-        .msg-time { font-size: 0.65rem; color: #888; margin-top: 4px; display: block; text-align: right; }
+        .msg-time { font-size: 0.65rem; color: #888; display: block; text-align: right; margin-top: 4px; }
 
-        .input-bar { padding: 10px 15px; background: #fff; display: flex; gap: 10px; align-items: center; border-top: 1px solid #eee; }
-        .input-bar input { flex: 1; border: none; padding: 12px 18px; border-radius: 24px; background: #f0f2f5; outline: none; font-size: 1rem; }
-        .send-btn { background: var(--main-blue); color: white; border: none; border-radius: 50%; width: 42px; height: 42px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+        /* Цитата (Reply) */
+        .reply-in-msg { background: rgba(0,0,0,0.05); border-left: 3px solid var(--main-blue); padding: 5px; border-radius: 4px; font-size: 0.8rem; margin-bottom: 5px; }
+
+        .input-bar-container { background: white; border-top: 1px solid #eee; display: flex; flex-direction: column; }
+        .reply-preview { padding: 8px 15px; background: #f8f9fa; border-left: 4px solid var(--main-blue); display: flex; justify-content: space-between; font-size: 0.85rem; }
+        .input-bar { padding: 10px 15px; display: flex; gap: 10px; align-items: center; }
+        .input-bar input { flex: 1; border: none; padding: 12px 18px; border-radius: 24px; background: #f0f2f5; outline: none; }
+        .send-btn { background: var(--main-blue); color: white; border: none; border-radius: 50%; width: 42px; height: 42px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        
+        .typing-status { font-size: 0.75rem; color: #adff2f; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -110,9 +113,10 @@
             const [text, setText] = useState("");
             const [search, setSearch] = useState("");
             const [inputName, setInputName] = useState("");
+            const [isPartnerTyping, setIsPartnerTyping] = useState(false);
+            const [replyTo, setReplyTo] = useState(null);
             const scrollRef = useRef();
 
-            // 1. Следим за авторизацией
             useEffect(() => {
                 return window.fb.onAuthStateChanged(window.fb.auth, u => {
                     setUser(u);
@@ -120,20 +124,18 @@
                 });
             }, []);
 
-            // 2. Следим за пользователями онлайн (включая себя)
-                useEffect(() => {
-                    if (user?.displayName) {
-                        return window.fb.onValue(window.fb.ref(window.fb.db, 'presence'), s => {
-                            const val = s.val() || {};
-                            const active = Object.entries(val)
-                                .map(([uid, data]) => ({ uid, ...data }))
-                                // Убрали фильтр u.uid !== user.uid, чтобы видеть и себя
-                                .filter(u => (Date.now() - u.lastSeen < 5 * 60 * 1000)); 
-                            setOnlineUsers(active);
-                        });
-                    }
-                }, [user]);
-            // 3. Список моих переписок
+            useEffect(() => {
+                if (user?.displayName) {
+                    return window.fb.onValue(window.fb.ref(window.fb.db, 'presence'), s => {
+                        const val = s.val() || {};
+                        const active = Object.entries(val)
+                            .map(([uid, data]) => ({ uid, ...data }))
+                            .filter(u => (Date.now() - u.lastSeen < 5 * 60 * 1000)); 
+                        setOnlineUsers(active);
+                    });
+                }
+            }, [user]);
+
             useEffect(() => {
                 if (user?.uid) {
                     return window.fb.onValue(window.fb.ref(window.fb.db, `userChats/${user.uid}`), s => {
@@ -143,140 +145,127 @@
                 }
             }, [user]);
 
-            // 4. Загрузка сообщений в конкретном чате
             useEffect(() => {
                 if (user && view === "chat") {
-                    const path = `messages/private/${[user.uid, activeChat].sort().join("_")}`;
-                    return window.fb.onValue(window.fb.ref(window.fb.db, path), s => {
+                    const chatId = [user.uid, activeChat].sort().join("_");
+                    
+                    // Сбрасываем уведомления при входе
+                    window.fb.update(window.fb.ref(window.fb.db, `userChats/${user.uid}/${activeChat}`), { unread: 0 });
+
+                    const msgUnsub = window.fb.onValue(window.fb.ref(window.fb.db, `messages/private/${chatId}`), s => {
                         setMessages(s.val() ? Object.values(s.val()) : []);
                         setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
                     });
+
+                    const typingUnsub = window.fb.onValue(window.fb.ref(window.fb.db, `typing/${chatId}/${activeChat}`), s => {
+                        setIsPartnerTyping(s.val() === true);
+                    });
+
+                    return () => { msgUnsub(); typingUnsub(); };
                 }
             }, [view, activeChat, user]);
 
+            const handleTyping = (e) => {
+                setText(e.target.value);
+                const chatId = [user.uid, activeChat].sort().join("_");
+                window.fb.set(window.fb.ref(window.fb.db, `typing/${chatId}/${user.uid}`), true);
+                clearTimeout(window.tOut);
+                window.tOut = setTimeout(() => {
+                    window.fb.set(window.fb.ref(window.fb.db, `typing/${chatId}/${user.uid}`), false);
+                }, 2000);
+            };
+
+            const sendMessage = async () => {
+                if (!text.trim()) return;
+                const time = Date.now();
+                const chatId = [user.uid, activeChat].sort().join("_");
+                
+                const msgData = { 
+                    text, uid: user.uid, time, 
+                    reply: replyTo ? { text: replyTo.text, name: replyTo.name } : null 
+                };
+
+                window.fb.push(window.fb.ref(window.fb.db, `messages/private/${chatId}`), msgData);
+                
+                window.fb.update(window.fb.ref(window.fb.db, `userChats/${user.uid}/${activeChat}`), { 
+                    lastMsg: text, lastTime: time, partnerName: chatName, partnerUid: activeChat 
+                });
+
+                const partnerRef = window.fb.ref(window.fb.db, `userChats/${activeChat}/${user.uid}`);
+                const snap = await window.fb.get(partnerRef);
+                const currentUnread = (snap.val()?.unread || 0);
+
+                window.fb.update(partnerRef, { 
+                    lastMsg: text, lastTime: time, partnerName: user.displayName, partnerUid: user.uid,
+                    unread: currentUnread + 1
+                });
+
+                setText(""); setReplyTo(null);
+                window.fb.set(window.fb.ref(window.fb.db, `typing/${chatId}/${user.uid}`), false);
+            };
+
             const login = async () => {
                 const provider = new window.fb.GoogleAuthProvider();
-                try { await window.fb.signInWithPopup(window.fb.auth, provider); } 
-                catch (e) { alert("Ошибка: " + e.message); }
+                await window.fb.signInWithPopup(window.fb.auth, provider);
             };
 
             const finishRegistration = async () => {
-                if (inputName.trim().length < 2) return alert("Никнейм слишком короткий");
                 await window.fb.updateProfile(window.fb.auth.currentUser, { displayName: inputName });
                 setUser({...window.fb.auth.currentUser, displayName: inputName});
             };
 
-            const setIMOnline = () => {
-                window.fb.set(window.fb.ref(window.fb.db, `presence/${user.uid}`), {
-                    name: user.displayName,
-                    lastSeen: Date.now()
-                });
-                alert("Вы в списке онлайн на 5 минут!");
-            };
+            if (!user) return (
+                <div className="login-screen"><div className="login-card">
+                    <h1 style={{color:'var(--main-blue)', fontSize:'2rem', marginBottom:10}}>AstikChat</h1>
+                    <button className="google-btn" onClick={login}>
+                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/layout/google.svg" />
+                        Войти через Google
+                    </button>
+                </div></div>
+            );
 
-            const openChat = (uid, name) => {
-                setActiveChat(uid);
-                setChatName(name);
-                setView("chat");
-            };
+            if (!user.displayName) return (
+                <div className="login-screen"><div className="login-card">
+                    <h3>Ваш никнейм</h3>
+                    <input className="search-input" style={{margin:'15px 0', textAlign:'center'}} value={inputName} onChange={e => setInputName(e.target.value)} />
+                    <button className="btn btn-primary" style={{width:'100%', padding:12, color:'white', background:'var(--main-blue)'}} onClick={finishRegistration}>Начать</button>
+                </div></div>
+            );
 
-            const sendMessage = () => {
-                if (!text.trim()) return;
-                const time = Date.now();
-                const chatId = [user.uid, activeChat].sort().join("_");
-                const path = `messages/private/${chatId}`;
-                
-                window.fb.push(window.fb.ref(window.fb.db, path), { text, uid: user.uid, time });
-                
-                const updateData = { lastMsg: text, lastTime: time };
-                window.fb.update(window.fb.ref(window.fb.db, `userChats/${user.uid}/${activeChat}`), { ...updateData, partnerName: chatName, partnerUid: activeChat });
-                window.fb.update(window.fb.ref(window.fb.db, `userChats/${activeChat}/${user.uid}`), { ...updateData, partnerName: user.displayName, partnerUid: user.uid });
-                
-                setText("");
-            };
-
-            // ЭКРАН 1: ВХОД ЧЕРЕЗ GOOGLE
-            if (!user) {
-                return (
-                    <div className="login-screen">
-                        <div className="login-card">
-                            <h1 style={{color:'var(--main-blue)', fontSize:'2rem', marginBottom:10}}>AstikChat</h1>
-                            <p style={{color:'#666', fontSize:'0.9rem'}}>Войдите, чтобы начать общение</p>
-                            <button className="google-btn" onClick={login}>
-                                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/layout/google.svg" />
-                                Войти через Google
-                            </button>
-                        </div>
-                    </div>
-                );
-            }
-
-            // ЭКРАН 2: ВЫБОР НИКНЕЙМА
-            if (!user.displayName) {
-                return (
-                    <div className="login-screen">
-                        <div className="login-card">
-                            <h3>Ваш никнейм</h3>
-                            <input className="search-input" style={{margin:'15px 0', textAlign:'center'}} 
-                                   value={inputName} onChange={e => setInputName(e.target.value)} placeholder="Придумайте ник..." />
-                            <button className="btn btn-primary" style={{width:'100%', padding:12}} onClick={finishRegistration}>Сохранить и войти</button>
-                        </div>
-                    </div>
-                );
-            }
-
-            // ЭКРАН 3: ГЛАВНЫЙ ХАБ
             if (view === "hub") {
                 return (
                     <>
-                        <header>
-                            <h1 className="logo">AstikChat</h1>
-                            <button className="btn" onClick={() => window.fb.signOut(window.fb.auth)}>Выход</button>
-                        </header>
-                        
+                        <header><h1 className="logo">AstikChat</h1><button className="btn" onClick={() => window.fb.signOut(window.fb.auth)}>Выход</button></header>
                         <div className="top-menu">
                             <div className="menu-row">
                                 <div style={{display:'flex', alignItems:'center', gap:10}}>
                                     <div className="avatar" style={{width:35, height:35, fontSize:'0.9rem', background:'var(--main-blue)'}}>{user.displayName[0]}</div>
                                     <b style={{fontSize:'0.9rem'}}>{user.displayName}</b>
                                 </div>
-                                <button className="btn btn-online" onClick={setIMOnline}>Я онлайн</button>
+                                <button className="btn btn-online" onClick={() => window.fb.set(window.fb.ref(window.fb.db, `presence/${user.uid}`), {name: user.displayName, lastSeen: Date.now()})}>Я онлайн</button>
                             </div>
-                            <input className="search-input" placeholder="🔍 Поиск сообщений..." value={search} onChange={e => setSearch(e.target.value)} />
+                            <input className="search-input" placeholder="🔍 Поиск диалогов..." value={search} onChange={e => setSearch(e.target.value)} />
                         </div>
-
                         <div className="content-scroll">
                             <div className="online-panel">
                                 <span className="section-title">Сейчас в сети</span>
-<div className="online-list">
-    {onlineUsers.length === 0 && <div style={{color:'#ccc', fontSize:'0.8rem', padding:10}}>Никого нет онлайн...</div>}
-    {onlineUsers.map(u => (
-        <div key={u.uid} className="online-user" onClick={() => u.uid !== user.uid && openChat(u.uid, u.name)}>
-            <div className="avatar" style={{
-                background: u.uid === user.uid ? 'var(--main-blue)' : '#eee', 
-                color: u.uid === user.uid ? 'white' : '#333', 
-                border: '2px solid var(--green)'
-            }}>
-                {u.name[0]}
-                <div className="online-indicator"></div>
-            </div>
-            <span style={{fontWeight: u.uid === user.uid ? 'bold' : 'normal'}}>
-                {u.uid === user.uid ? "Я (онлайн)" : u.name}
-            </span>
-        </div>
-    ))}
-</div>
+                                <div className="online-list">
+                                    {onlineUsers.map(u => (
+                                        <div key={u.uid} className="online-user" onClick={() => u.uid !== user.uid && (setActiveChat(u.uid), setChatName(u.name), setView("chat"))}>
+                                            <div className="avatar" style={{background: u.uid === user.uid ? 'var(--main-blue)' : '#eee', border: '2px solid var(--green)'}}>{u.name[0]}<div className="online-indicator"></div></div>
+                                            <span style={{fontWeight: u.uid === user.uid ? 'bold' : 'normal'}}>{u.uid === user.uid ? "Я" : u.name}</span>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
-
-                            <span className="section-title" style={{padding:'15px 15px 5px'}}>Мои диалоги</span>
                             {myChats.filter(c => c.partnerName?.toLowerCase().includes(search.toLowerCase())).map(c => (
-                                <div key={c.partnerUid} className="chat-item" onClick={() => openChat(c.partnerUid, c.partnerName)}>
+                                <div key={c.partnerUid} className="chat-item" onClick={() => {setActiveChat(c.partnerUid); setChatName(c.partnerName); setView("chat");}}>
                                     <div className="avatar">{c.partnerName[0]}</div>
-                                    <div className="chat-info">
-                                        <span className="chat-name">{c.partnerName}</span>
-                                        <span className="chat-preview">{c.lastMsg}</span>
+                                    <div className="chat-info"><span className="chat-name">{c.partnerName}</span><span className="chat-preview">{c.lastMsg}</span></div>
+                                    <div style={{display:'flex', flexDirection:'column', alignItems:'flex-end'}}>
+                                        <span style={{fontSize:'0.7rem', color:'#999'}}>{new Date(c.lastTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                                        {c.unread > 0 && <div className="notif-badge">{c.unread}</div>}
                                     </div>
-                                    <span style={{fontSize:'0.7rem', color:'#999'}}>{new Date(c.lastTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
                                 </div>
                             ))}
                         </div>
@@ -284,20 +273,23 @@
                 );
             }
 
-            // ЭКРАН 4: ОКНО ЧАТА
             return (
                 <>
                     <header>
                         <div style={{display:'flex', alignItems:'center', gap:15}}>
                             <span onClick={() => setView("hub")} style={{fontSize:'1.5rem', cursor:'pointer'}}>←</span>
                             <div className="avatar" style={{width:35, height:35, fontSize:'0.9rem'}}>{chatName[0]}</div>
-                            <b style={{fontSize:'1rem'}}>{chatName}</b>
+                            <div>
+                                <b style={{fontSize:'1rem'}}>{chatName}</b>
+                                {isPartnerTyping && <div className="typing-status">печатает...</div>}
+                            </div>
                         </div>
                     </header>
                     <div className="chat-area">
                         {messages.map((m, i) => (
-                            <div key={i} className={`msg-wrap ${m.uid === user.uid ? 'my-wrap' : ''}`}>
+                            <div key={i} className={`msg-wrap ${m.uid === user.uid ? 'my-wrap' : ''}`} onClick={() => setReplyTo({text: m.text, name: m.uid === user.uid ? 'Вы' : chatName})}>
                                 <div className={`msg-bubble ${m.uid === user.uid ? 'my-bubble' : 'other-bubble'}`}>
+                                    {m.reply && <div className="reply-in-msg"><b>{m.reply.name}</b><br/>{m.reply.text}</div>}
                                     {m.text}
                                     <span className="msg-time">{new Date(m.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
                                 </div>
@@ -305,10 +297,12 @@
                         ))}
                         <div ref={scrollRef} />
                     </div>
-                    <div className="input-bar">
-                        <input value={text} onChange={e => setText(e.target.value)} 
-                               onKeyPress={e => e.key === 'Enter' && sendMessage()} placeholder="Сообщение..." />
-                        <button className="send-btn" onClick={sendMessage}>➤</button>
+                    <div className="input-bar-container">
+                        {replyTo && <div className="reply-preview"><span>Ответ для <b>{replyTo.name}</b>: {replyTo.text}</span><span onClick={()=>setReplyTo(null)}>✕</span></div>}
+                        <div className="input-bar">
+                            <input value={text} onChange={handleTyping} onKeyPress={e => e.key === 'Enter' && sendMessage()} placeholder="Сообщение..." />
+                            <button className="send-btn" onClick={sendMessage}>➤</button>
+                        </div>
                     </div>
                 </>
             );
