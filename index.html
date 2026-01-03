@@ -259,6 +259,85 @@
             );
 
             if (view === "hub") {
+                const changeDisplayName = async () => {
+                    const newName = prompt("Введите новое имя:", user.displayName);
+                    if (newName && newName.trim() !== "" && newName.trim() !== user.displayName) {
+                        if (confirm(`Вы уверены, что хотите изменить имя на "${newName.trim()}"? Страница будет перезагружена.`)) {
+                            try {
+                                await window.fb.updateProfile(window.fb.auth.currentUser, { 
+                                    displayName: newName.trim() 
+                                });
+                                const onlineRef = window.fb.ref(window.fb.db, `presence/${user.uid}`);
+                                const snap = await window.fb.get(onlineRef);
+                                if (snap.exists()) {
+                                    await window.fb.update(onlineRef, { name: newName.trim() });
+                                }
+                                window.location.reload();
+                            } catch (e) {
+                                alert("Ошибка: " + e.message);
+                            }
+                        }
+                    }
+                };
+
+                const toggleOnline = () => {
+                    const isOnline = onlineUsers.some(u => u.uid === user.uid);
+                    if (isOnline) {
+                        window.fb.set(window.fb.ref(window.fb.db, `presence/${user.uid}`), null);
+                    } else {
+                        window.fb.set(window.fb.ref(window.fb.db, `presence/${user.uid}`), {
+                            name: user.displayName,
+                            lastSeen: Date.now()
+                        });
+                    }
+                };
+
+                return (
+                    <>
+                        <header>
+                            <h1 className="logo">AstikChat</h1>
+                            <button className="btn" onClick={() => confirm("Вы точно хотите выйти?") && window.fb.signOut(window.fb.auth)}>Выход</button>
+                        </header>
+                        <div className="top-menu">
+                            <div className="menu-row">
+                                <div style={{display:'flex', alignItems:'center', gap:10}}>
+                                    <div className="avatar" style={{width:35, height:35, fontSize:'0.9rem', background:'var(--main-blue)'}}>{user.displayName ? user.displayName[0] : "?"}</div>
+                                    <div style={{display:'flex', flexDirection:'column'}}>
+                                        <b style={{fontSize:'0.9rem'}}>{user.displayName}</b>
+                                        <span onClick={changeDisplayName} style={{fontSize:'0.7rem', color:'var(--main-blue)', cursor:'pointer', fontWeight:'600'}}>Изменить имя ✎</span>
+                                    </div>
+                                </div>
+                                <button className={`btn ${onlineUsers.some(u => u.uid === user.uid) ? '' : 'btn-online'}`} onClick={toggleOnline}>
+                                    {onlineUsers.some(u => u.uid === user.uid) ? "Уйти в тень" : "Я онлайн"}
+                                </button>
+                            </div>
+                            <input className="search-input" placeholder="🔍 Поиск диалогов..." value={search} onChange={e => setSearch(e.target.value)} />
+                        </div>
+                        <div className="content-scroll">
+                            <div className="online-panel">
+                                <span className="section-title">Сейчас в сети</span>
+                                <div className="online-list">
+                                    {onlineUsers.map(u => (
+                                        <div key={u.uid} className="online-user" onClick={() => u.uid !== user.uid && (setActiveChat(u.uid), setChatName(u.name), setView("chat"))}>
+                                            <div className="avatar" style={{background: u.uid === user.uid ? 'var(--main-blue)' : '#eee', border: '2px solid var(--green)'}}>{u.name ? u.name[0] : "?"}<div className="online-indicator"></div></div>
+                                            <span style={{fontWeight: u.uid === user.uid ? 'bold' : 'normal'}}>{u.uid === user.uid ? "Я" : u.name}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            {myChats.filter(c => c.partnerName?.toLowerCase().includes(search.toLowerCase())).map(c => (
+                                <div key={c.partnerUid} className="chat-item" onClick={() => {setActiveChat(c.partnerUid); setChatName(c.partnerName); setView("chat");}}>
+                                    <div className="avatar">{c.partnerName ? c.partnerName[0] : "?"}</div>
+                                    <div className="chat-info"><span className="chat-name">{c.partnerName}</span><span className="chat-preview">{c.lastMsg}</span></div>
+                                    <div style={{display:'flex', flexDirection:'column', alignItems:'flex-end'}}>
+                                        <span style={{fontSize:'0.7rem', color:'#999'}}>{new Date(c.lastTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                                        {c.unread > 0 && <div className="notif-badge">{c.unread}</div>}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </>
+                );
                 return (
                     <>
 <header>
