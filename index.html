@@ -235,13 +235,19 @@
             };
 
             if (!user) return (
-                <div className="login-screen"><div className="login-card">
-                    <h1 style={{color:'var(--main-blue)', fontSize:'2rem', marginBottom:10}}>AstikChat</h1>
-                    <button className="google-btn" onClick={login}>
-                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/layout/google.svg" />
-                        Войти через Google
-                    </button>
-                </div></div>
+<div className="login-screen">
+    <div className="login-card">
+        <h1 style={{color:'var(--main-blue)', fontSize:'2rem', marginBottom:10}}>AstikChat</h1>
+        <button className="google-btn" onClick={login}>
+            <img 
+                src="https://www.gstatic.com/images/branding/product/1x/gsa_64dp.png" 
+                style={{width: '24px', height: '24px'}} 
+                alt="Google logo"
+            />
+            Войти через Google
+        </button>
+    </div>
+</div>
             );
 
             if (!user.displayName) return (
@@ -255,7 +261,14 @@
             if (view === "hub") {
                 return (
                     <>
-                        <header><h1 className="logo">AstikChat</h1><button className="btn" onClick={() => window.fb.signOut(window.fb.auth)}>Выход</button></header>
+<header>
+    <h1 className="logo">AstikChat</h1>
+    <button className="btn" onClick={() => {
+        if (confirm("Вы точно хотите выйти из аккаунта?")) {
+            window.fb.signOut(window.fb.auth);
+        }
+    }}>Выход</button>
+</header>
                         <div className="top-menu">
                             <div className="menu-row">
                                 <div style={{display:'flex', alignItems:'center', gap:10}}>
