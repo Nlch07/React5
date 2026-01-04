@@ -37,83 +37,46 @@
     <style>
         :root { --main-blue: #1565C0; --bg: #f0f2f5; --green: #4CAF50; --red: #ff3b30; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        html, body { height: 100%; margin: 0; font-family: -apple-system, sans-serif; background: #f0f2f5; overflow: hidden; }
-        
-        #root { display: flex; flex-direction: column; height: 100vh; height: 100dvh; background: white; max-width: 500px; margin: 0 auto; position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
-
-        /* Вход */
-        .login-screen { position: fixed; inset: 0; background: linear-gradient(135deg, #1565C0 0%, #1e88e5 100%); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 1000; }
-        .login-card { background: white; padding: 40px 30px; border-radius: 28px; width: 100%; max-width: 360px; text-align: center; }
-        .google-btn { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; padding: 14px; border: 1px solid #ddd; border-radius: 14px; background: white; font-weight: 600; cursor: pointer; margin-top: 20px; }
+        body { margin: 0; font-family: -apple-system, sans-serif; background: #f0f2f5; overflow: hidden; }
+        #root { display: flex; flex-direction: column; height: 100vh; height: 100dvh; max-width: 500px; margin: 0 auto; background: white; position: relative; }
 
         header { background: var(--main-blue); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; z-index: 10; }
         .logo { font-size: 1.5rem; font-weight: 900; margin: 0; }
 
+        /* Экраны */
+        .login-screen { position: fixed; inset: 0; background: linear-gradient(135deg, #1565C0 0%, #1e88e5 100%); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .login-card { background: white; padding: 40px; border-radius: 28px; width: 90%; max-width: 360px; text-align: center; }
+
         .top-menu { background: #fff; padding: 12px 15px; border-bottom: 1px solid #eee; }
         .menu-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-        .btn { border: none; background: #f0f2f5; color: #333; padding: 8px 16px; border-radius: 20px; font-weight: 600; cursor: pointer; }
+        .btn { border: none; background: #f0f2f5; padding: 8px 16px; border-radius: 20px; font-weight: 600; cursor: pointer; }
         .btn-online { background: var(--green); color: white; }
-        .search-input { width: 100%; padding: 12px 15px; border-radius: 12px; border: none; background: #f0f2f5; outline: none; }
 
-        /* Онлайн список */
-        .online-panel { padding: 15px; background: #fff; border-bottom: 8px solid #f0f2f5; }
-        .section-title { font-size: 0.7rem; font-weight: 800; color: #999; text-transform: uppercase; margin-bottom: 10px; display: block; }
-        .online-list { display: flex; gap: 15px; overflow-x: auto; padding-bottom: 5px; }
-        .online-user { display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; min-width: 65px; }
-        .online-user span { font-size: 0.75rem; width: 65px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-        .content-scroll { flex: 1; overflow-y: auto; }
-        
-        /* Список чатов */
-        .chat-item { display: flex; align-items: center; padding: 15px; border-bottom: 1px solid #f5f5f5; cursor: pointer; }
-        .avatar { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; flex-shrink: 0; background: #ccc; position: relative; }
-        .online-indicator { position: absolute; bottom: 2px; right: 2px; width: 12px; height: 12px; background: var(--green); border: 2px solid white; border-radius: 50%; }
-        .chat-info { flex: 1; margin-left: 15px; overflow: hidden; }
-        .chat-name { font-weight: 700; display: block; margin-bottom: 2px; }
-        .chat-preview { font-size: 0.9rem; color: #65676b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
-
-        /* КРАСНЫЙ КРУЖОК УВЕДОМЛЕНИЙ */
-        .notif-badge { background: var(--red); color: white; border-radius: 50%; min-width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold; margin-top: 5px; }
-
-        /* Окно чата */
+        .content-scroll { flex: 1; overflow-y: auto; background: white; }
         .chat-area { flex: 1; overflow-y: auto; background: #e5ddd5; padding: 15px; display: flex; flex-direction: column; gap: 8px; }
-        .msg-wrap { display: flex; width: 100%; cursor: pointer; }
+
+        /* Сообщения */
+        .msg-wrap { display: flex; width: 100%; }
         .my-wrap { justify-content: flex-end; }
-        .msg-bubble { max-width: 80%; padding: 8px 12px; border-radius: 18px; font-size: 0.95rem; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
+        .msg-bubble { max-width: 80%; padding: 8px 12px; border-radius: 18px; font-size: 0.95rem; box-shadow: 0 1px 1px rgba(0,0,0,0.1); position: relative; }
         .my-bubble { background: #dcf8c6; border-bottom-right-radius: 4px; }
         .other-bubble { background: white; border-bottom-left-radius: 4px; }
-        .msg-time { font-size: 0.65rem; color: #888; display: block; text-align: right; margin-top: 4px; }
+        .msg-time { font-size: 0.65rem; color: #888; text-align: right; margin-top: 4px; }
 
-        /* Цитата (Reply) */
-        .reply-in-msg { background: rgba(0,0,0,0.05); border-left: 3px solid var(--main-blue); padding: 5px; border-radius: 4px; font-size: 0.8rem; margin-bottom: 5px; }
+        /* Голосовые */
+        .audio-msg { width: 100%; max-width: 210px; height: 35px; margin-top: 5px; display: block; }
+        .mic-btn { background: var(--red); color: white; border: none; border-radius: 50%; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s; }
+        .mic-btn.recording { animation: pulse 1.2s infinite; background: #d32f2f; }
+        @keyframes pulse { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.7); } 70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(255, 59, 48, 0); } 100% { transform: scale(1); } }
 
-        .input-bar-container { background: white; border-top: 1px solid #eee; display: flex; flex-direction: column; }
-        .reply-preview { padding: 8px 15px; background: #f8f9fa; border-left: 4px solid var(--main-blue); display: flex; justify-content: space-between; font-size: 0.85rem; }
-        .input-bar { padding: 10px 15px; display: flex; gap: 10px; align-items: center; }
+        .input-bar { padding: 10px 15px; display: flex; gap: 10px; align-items: center; background: white; border-top: 1px solid #eee; }
         .input-bar input { flex: 1; border: none; padding: 12px 18px; border-radius: 24px; background: #f0f2f5; outline: none; }
-        .send-btn { background: var(--main-blue); color: white; border: none; border-radius: 50%; width: 42px; height: 42px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        
-        .typing-status { font-size: 0.75rem; color: #adff2f; font-weight: bold; }
-        /* Анимация печатающих точек */
-.typing-bubble {
-    display: flex;
-    gap: 4px;
-    padding: 12px 16px !important;
-}
-.dot {
-    width: 6px;
-    height: 6px;
-    background: #999;
-    border-radius: 50%;
-    animation: typingAnimation 1.4s infinite;
-}
-.dot:nth-child(2) { animation-delay: 0.2s; }
-.dot:nth-child(3) { animation-delay: 0.4s; }
+        .send-btn { background: var(--main-blue); color: white; border: none; border-radius: 50%; width: 42px; height: 42px; cursor: pointer; }
 
-@keyframes typingAnimation {
-    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-    30% { transform: translateY(-4px); opacity: 1; }
-}
+        .avatar { width: 40px; height: 40px; border-radius: 50%; background: #ccc; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; position: relative; }
+        .online-indicator { position: absolute; bottom: 2px; right: 2px; width: 10px; height: 10px; background: var(--green); border: 2px solid white; border-radius: 50%; }
+        
+        .chat-item { display: flex; align-items: center; padding: 15px; border-bottom: 1px solid #f5f5f5; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -132,32 +95,32 @@
             const [messages, setMessages] = useState([]);
             const [text, setText] = useState("");
             const [search, setSearch] = useState("");
-            const [inputName, setInputName] = useState("");
+            const [isRecording, setIsRecording] = useState(false);
             const [isPartnerTyping, setIsPartnerTyping] = useState(false);
-            const [replyTo, setReplyTo] = useState(null);
-            const scrollRef = useRef();
+            
+            const mediaRecorder = useRef(null);
+            const audioChunks = useRef([]);
+            const chatEndRef = useRef(null);
 
+            // Auth listener
             useEffect(() => {
-                return window.fb.onAuthStateChanged(window.fb.auth, u => {
-                    setUser(u);
-                    if (u?.displayName) setInputName(u.displayName);
-                });
+                return window.fb.onAuthStateChanged(window.fb.auth, u => setUser(u));
             }, []);
 
+            // Presence & Online list
             useEffect(() => {
-                if (user?.displayName) {
-                    return window.fb.onValue(window.fb.ref(window.fb.db, 'presence'), s => {
+                if (user) {
+                    const pRef = window.fb.ref(window.fb.db, 'presence');
+                    return window.fb.onValue(pRef, s => {
                         const val = s.val() || {};
-                        const active = Object.entries(val)
-                            .map(([uid, data]) => ({ uid, ...data }))
-                            .filter(u => (Date.now() - u.lastSeen < 5 * 60 * 1000)); 
-                        setOnlineUsers(active);
+                        setOnlineUsers(Object.entries(val).map(([uid, d]) => ({ uid, ...d })));
                     });
                 }
             }, [user]);
 
+            // My Chats list
             useEffect(() => {
-                if (user?.uid) {
+                if (user) {
                     return window.fb.onValue(window.fb.ref(window.fb.db, `userChats/${user.uid}`), s => {
                         const val = s.val();
                         setMyChats(val ? Object.values(val).sort((a,b) => b.lastTime - a.lastTime) : []);
@@ -165,23 +128,23 @@
                 }
             }, [user]);
 
+            // Chat Messages & Typing
             useEffect(() => {
-                if (user && view === "chat") {
+                if (user && view === "chat" && activeChat) {
                     const chatId = [user.uid, activeChat].sort().join("_");
-                    
-                    // Сбрасываем уведомления при входе
                     window.fb.update(window.fb.ref(window.fb.db, `userChats/${user.uid}/${activeChat}`), { unread: 0 });
-
-                    const msgUnsub = window.fb.onValue(window.fb.ref(window.fb.db, `messages/private/${chatId}`), s => {
+                    
+                    const mRef = window.fb.ref(window.fb.db, `messages/private/${chatId}`);
+                    const unsubM = window.fb.onValue(mRef, s => {
                         setMessages(s.val() ? Object.values(s.val()) : []);
-                        setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+                        setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
                     });
 
-                    const typingUnsub = window.fb.onValue(window.fb.ref(window.fb.db, `typing/${chatId}/${activeChat}`), s => {
+                    const unsubT = window.fb.onValue(window.fb.ref(window.fb.db, `typing/${chatId}/${activeChat}`), s => {
                         setIsPartnerTyping(s.val() === true);
                     });
 
-                    return () => { msgUnsub(); typingUnsub(); };
+                    return () => { unsubM(); unsubT(); };
                 }
             }, [view, activeChat, user]);
 
@@ -195,245 +158,158 @@
                 }, 2000);
             };
 
-            const sendMessage = async () => {
+            const sendMessage = () => {
                 if (!text.trim()) return;
                 const time = Date.now();
                 const chatId = [user.uid, activeChat].sort().join("_");
+                const msg = { text: text.trim(), uid: user.uid, time };
                 
-                const msgData = { 
-                    text, uid: user.uid, time, 
-                    reply: replyTo ? { text: replyTo.text, name: replyTo.name } : null 
-                };
-
-                window.fb.push(window.fb.ref(window.fb.db, `messages/private/${chatId}`), msgData);
-                
-                window.fb.update(window.fb.ref(window.fb.db, `userChats/${user.uid}/${activeChat}`), { 
-                    lastMsg: text, lastTime: time, partnerName: chatName, partnerUid: activeChat 
-                });
-
-                const partnerRef = window.fb.ref(window.fb.db, `userChats/${activeChat}/${user.uid}`);
-                const snap = await window.fb.get(partnerRef);
-                const currentUnread = (snap.val()?.unread || 0);
-
-                window.fb.update(partnerRef, { 
-                    lastMsg: text, lastTime: time, partnerName: user.displayName, partnerUid: user.uid,
-                    unread: currentUnread + 1
-                });
-
-                setText(""); setReplyTo(null);
-                window.fb.set(window.fb.ref(window.fb.db, `typing/${chatId}/${user.uid}`), false);
+                window.fb.push(window.fb.ref(window.fb.db, `messages/private/${chatId}`), msg);
+                updateChatHeads(text.trim(), time);
+                setText("");
             };
 
-            const login = async () => {
-                const provider = new window.fb.GoogleAuthProvider();
-                await window.fb.signInWithPopup(window.fb.auth, provider);
+            const updateChatHeads = async (lastMsg, time) => {
+                const updateObj = { lastMsg, lastTime: time, partnerName: chatName, partnerUid: activeChat };
+                window.fb.update(window.fb.ref(window.fb.db, `userChats/${user.uid}/${activeChat}`), updateObj);
+                
+                const pRef = window.fb.ref(window.fb.db, `userChats/${activeChat}/${user.uid}`);
+                const snap = await window.fb.get(pRef);
+                window.fb.update(pRef, { 
+                    lastMsg, lastTime: time, partnerName: user.displayName, partnerUid: user.uid,
+                    unread: (snap.val()?.unread || 0) + 1
+                });
             };
 
-            const finishRegistration = async () => {
-                await window.fb.updateProfile(window.fb.auth.currentUser, { displayName: inputName });
-                setUser({...window.fb.auth.currentUser, displayName: inputName});
+            const startRecording = async () => {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder.current = new MediaRecorder(stream);
+                    audioChunks.current = [];
+                    mediaRecorder.current.ondataavailable = e => audioChunks.current.push(e.data);
+                    mediaRecorder.current.onstop = () => {
+                        const blob = new Blob(audioChunks.current, { type: 'audio/webm' });
+                        const reader = new FileReader();
+                        reader.readAsDataURL(blob);
+                        reader.onloadend = () => {
+                            const base64 = reader.result;
+                            const time = Date.now();
+                            const chatId = [user.uid, activeChat].sort().join("_");
+                            window.fb.push(window.fb.ref(window.fb.db, `messages/private/${chatId}`), { audio: base64, uid: user.uid, time });
+                            updateChatHeads("🎙 Голосовое сообщение", time);
+                        };
+                    };
+                    mediaRecorder.current.start();
+                    setIsRecording(true);
+                } catch (e) { alert("Микрофон недоступен"); }
+            };
+
+            const stopRecording = () => {
+                if (mediaRecorder.current && isRecording) {
+                    mediaRecorder.current.stop();
+                    mediaRecorder.current.stream.getTracks().forEach(t => t.stop());
+                    setIsRecording(false);
+                }
+            };
+
+            const changeName = async () => {
+                const n = prompt("Новое имя:", user.displayName);
+                if (n && n.trim() !== user.displayName) {
+                    if (confirm("Изменить имя и перезагрузить?")) {
+                        await window.fb.updateProfile(window.fb.auth.currentUser, { displayName: n.trim() });
+                        await window.fb.update(window.fb.ref(window.fb.db, `presence/${user.uid}`), { name: n.trim() });
+                        window.location.reload();
+                    }
+                }
             };
 
             if (!user) return (
-<div className="login-screen">
-    <div className="login-card">
-        <h1 style={{color:'var(--main-blue)', fontSize:'2rem', marginBottom:10}}>AstikChat</h1>
-        <button className="google-btn" onClick={login}>
-            <img 
-                src="https://www.gstatic.com/images/branding/product/1x/gsa_64dp.png" 
-                style={{width: '24px', height: '24px'}} 
-                alt="Google logo"
-            />
-            Войти через Google
-        </button>
-    </div>
-</div>
+                <div className="login-screen">
+                    <div className="login-card">
+                        <h1 style={{color:'var(--main-blue)'}}>AstikChat</h1>
+                        <button className="btn btn-online" style={{width:'100%', padding:15}} onClick={() => window.fb.signInWithPopup(window.fb.auth, new window.fb.GoogleAuthProvider())}>Войти через Google</button>
+                    </div>
+                </div>
             );
 
-            if (!user.displayName) return (
-                <div className="login-screen"><div className="login-card">
-                    <h3>Ваш никнейм</h3>
-                    <input className="search-input" style={{margin:'15px 0', textAlign:'center'}} value={inputName} onChange={e => setInputName(e.target.value)} />
-                    <button className="btn btn-primary" style={{width:'100%', padding:12, color:'white', background:'var(--main-blue)'}} onClick={finishRegistration}>Начать</button>
-                </div></div>
-            );
-
-            if (view === "hub") {
-                const changeDisplayName = async () => {
-                    const newName = prompt("Введите новое имя:", user.displayName);
-                    if (newName && newName.trim() !== "" && newName.trim() !== user.displayName) {
-                        if (confirm(`Вы уверены, что хотите изменить имя на "${newName.trim()}"? Страница будет перезагружена.`)) {
-                            try {
-                                await window.fb.updateProfile(window.fb.auth.currentUser, { 
-                                    displayName: newName.trim() 
-                                });
-                                const onlineRef = window.fb.ref(window.fb.db, `presence/${user.uid}`);
-                                const snap = await window.fb.get(onlineRef);
-                                if (snap.exists()) {
-                                    await window.fb.update(onlineRef, { name: newName.trim() });
-                                }
-                                window.location.reload();
-                            } catch (e) {
-                                alert("Ошибка: " + e.message);
-                            }
-                        }
-                    }
-                };
-
-                const toggleOnline = () => {
-                    const isOnline = onlineUsers.some(u => u.uid === user.uid);
-                    if (isOnline) {
-                        window.fb.set(window.fb.ref(window.fb.db, `presence/${user.uid}`), null);
-                    } else {
-                        window.fb.set(window.fb.ref(window.fb.db, `presence/${user.uid}`), {
-                            name: user.displayName,
-                            lastSeen: Date.now()
-                        });
-                    }
-                };
-
-                return (
-                    <>
-                        <header>
-                            <h1 className="logo">AstikChat</h1>
-                            <button className="btn" onClick={() => confirm("Вы точно хотите выйти?") && window.fb.signOut(window.fb.auth)}>Выход</button>
-                        </header>
-                        <div className="top-menu">
-                            <div className="menu-row">
-                                <div style={{display:'flex', alignItems:'center', gap:10}}>
-                                    <div className="avatar" style={{width:35, height:35, fontSize:'0.9rem', background:'var(--main-blue)'}}>{user.displayName ? user.displayName[0] : "?"}</div>
-                                    <div style={{display:'flex', flexDirection:'column'}}>
-                                        <b style={{fontSize:'0.9rem'}}>{user.displayName}</b>
-                                        <span onClick={changeDisplayName} style={{fontSize:'0.7rem', color:'var(--main-blue)', cursor:'pointer', fontWeight:'600'}}>Изменить имя ✎</span>
-                                    </div>
+            if (view === "hub") return (
+                <>
+                    <header>
+                        <h1 className="logo">AstikChat</h1>
+                        <button className="btn" onClick={() => confirm("Выйти?") && window.fb.signOut(window.fb.auth)}>Выход</button>
+                    </header>
+                    <div className="top-menu">
+                        <div className="menu-row">
+                            <div style={{display:'flex', alignItems:'center', gap:10}}>
+                                <div className="avatar" style={{background:'var(--main-blue)'}}>{user.displayName?.[0]}</div>
+                                <div>
+                                    <b>{user.displayName}</b><br/>
+                                    <span onClick={changeName} style={{fontSize:'0.7rem', color:'var(--main-blue)', cursor:'pointer'}}>Изменить имя ✎</span>
                                 </div>
-                                <button className={`btn ${onlineUsers.some(u => u.uid === user.uid) ? '' : 'btn-online'}`} onClick={toggleOnline}>
-                                    {onlineUsers.some(u => u.uid === user.uid) ? "Уйти в тень" : "Я онлайн"}
-                                </button>
                             </div>
-                            <input className="search-input" placeholder="🔍 Поиск диалогов..." value={search} onChange={e => setSearch(e.target.value)} />
+                            <button className="btn btn-online" onClick={() => window.fb.set(window.fb.ref(window.fb.db, `presence/${user.uid}`), {name: user.displayName, lastSeen: Date.now()})}>Я онлайн</button>
                         </div>
-                        <div className="content-scroll">
-                            <div className="online-panel">
-                                <span className="section-title">Сейчас в сети</span>
-                                <div className="online-list">
-                                    {onlineUsers.map(u => (
-                                        <div key={u.uid} className="online-user" onClick={() => u.uid !== user.uid && (setActiveChat(u.uid), setChatName(u.name), setView("chat"))}>
-                                            <div className="avatar" style={{background: u.uid === user.uid ? 'var(--main-blue)' : '#eee', border: '2px solid var(--green)'}}>{u.name ? u.name[0] : "?"}<div className="online-indicator"></div></div>
-                                            <span style={{fontWeight: u.uid === user.uid ? 'bold' : 'normal'}}>{u.uid === user.uid ? "Я" : u.name}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                            {myChats.filter(c => c.partnerName?.toLowerCase().includes(search.toLowerCase())).map(c => (
-                                <div key={c.partnerUid} className="chat-item" onClick={() => {setActiveChat(c.partnerUid); setChatName(c.partnerName); setView("chat");}}>
-                                    <div className="avatar">{c.partnerName ? c.partnerName[0] : "?"}</div>
-                                    <div className="chat-info"><span className="chat-name">{c.partnerName}</span><span className="chat-preview">{c.lastMsg}</span></div>
-                                    <div style={{display:'flex', flexDirection:'column', alignItems:'flex-end'}}>
-                                        <span style={{fontSize:'0.7rem', color:'#999'}}>{new Date(c.lastTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
-                                        {c.unread > 0 && <div className="notif-badge">{c.unread}</div>}
-                                    </div>
+                        <input className="input-bar" style={{width:'100%', border:'none'}} placeholder="🔍 Поиск..." value={search} onChange={e => setSearch(e.target.value)} />
+                    </div>
+                    <div className="content-scroll">
+                        <div style={{padding:15, display:'flex', gap:10, overflowX:'auto'}}>
+                            {onlineUsers.map(u => (
+                                <div key={u.uid} onClick={() => u.uid !== user.uid && (setActiveChat(u.uid), setChatName(u.name), setView("chat"))} style={{textAlign:'center', minWidth:60}}>
+                                    <div className="avatar" style={{margin:'0 auto'}}>{u.name?.[0]}<div className="online-indicator"></div></div>
+                                    <span style={{fontSize:'0.7rem'}}>{u.uid === user.uid ? "Я" : u.name}</span>
                                 </div>
                             ))}
                         </div>
-                    </>
-                );
-                return (
-                    <>
-<header>
-    <h1 className="logo">AstikChat</h1>
-    <button className="btn" onClick={() => {
-        if (confirm("Вы точно хотите выйти из аккаунта?")) {
-            window.fb.signOut(window.fb.auth);
-        }
-    }}>Выход</button>
-</header>
-                        <div className="top-menu">
-                            <div className="menu-row">
-                                <div style={{display:'flex', alignItems:'center', gap:10}}>
-                                    <div className="avatar" style={{width:35, height:35, fontSize:'0.9rem', background:'var(--main-blue)'}}>{user.displayName[0]}</div>
-                                    <b style={{fontSize:'0.9rem'}}>{user.displayName}</b>
+                        {myChats.filter(c => c.partnerName?.toLowerCase().includes(search.toLowerCase())).map(c => (
+                            <div key={c.partnerUid} className="chat-item" onClick={() => {setActiveChat(c.partnerUid); setChatName(c.partnerName); setView("chat");}}>
+                                <div className="avatar">{c.partnerName?.[0]}</div>
+                                <div style={{flex:1, marginLeft:15}}>
+                                    <b>{c.partnerName}</b><br/>
+                                    <span style={{color:'#666', fontSize:'0.9rem'}}>{c.lastMsg}</span>
                                 </div>
-                                <button className="btn btn-online" onClick={() => window.fb.set(window.fb.ref(window.fb.db, `presence/${user.uid}`), {name: user.displayName, lastSeen: Date.now()})}>Я онлайн</button>
+                                {c.unread > 0 && <div style={{background:'var(--red)', color:'white', borderRadius:'50%', padding:'2px 8px', fontSize:'0.7rem'}}>{c.unread}</div>}
                             </div>
-                            <input className="search-input" placeholder="🔍 Поиск диалогов..." value={search} onChange={e => setSearch(e.target.value)} />
-                        </div>
-                        <div className="content-scroll">
-                            <div className="online-panel">
-                                <span className="section-title">Сейчас в сети</span>
-                                <div className="online-list">
-                                    {onlineUsers.map(u => (
-                                        <div key={u.uid} className="online-user" onClick={() => u.uid !== user.uid && (setActiveChat(u.uid), setChatName(u.name), setView("chat"))}>
-                                            <div className="avatar" style={{background: u.uid === user.uid ? 'var(--main-blue)' : '#eee', border: '2px solid var(--green)'}}>{u.name[0]}<div className="online-indicator"></div></div>
-                                            <span style={{fontWeight: u.uid === user.uid ? 'bold' : 'normal'}}>{u.uid === user.uid ? "Я" : u.name}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                            {myChats.filter(c => c.partnerName?.toLowerCase().includes(search.toLowerCase())).map(c => (
-                                <div key={c.partnerUid} className="chat-item" onClick={() => {setActiveChat(c.partnerUid); setChatName(c.partnerName); setView("chat");}}>
-                                    <div className="avatar">{c.partnerName[0]}</div>
-                                    <div className="chat-info"><span className="chat-name">{c.partnerName}</span><span className="chat-preview">{c.lastMsg}</span></div>
-                                    <div style={{display:'flex', flexDirection:'column', alignItems:'flex-end'}}>
-                                        <span style={{fontSize:'0.7rem', color:'#999'}}>{new Date(c.lastTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
-                                        {c.unread > 0 && <div className="notif-badge">{c.unread}</div>}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </>
-                );
-            }
+                        ))}
+                    </div>
+                </>
+            );
 
             return (
                 <>
                     <header>
-                        <div style={{display:'flex', alignItems:'center', gap:15}}>
+                        <div style={{display:'flex', alignItems:'center', gap:10}}>
                             <span onClick={() => setView("hub")} style={{fontSize:'1.5rem', cursor:'pointer'}}>←</span>
-                            <div className="avatar" style={{width:35, height:35, fontSize:'0.9rem'}}>{chatName[0]}</div>
+                            <div className="avatar" style={{width:35, height:35}}>{chatName?.[0]}</div>
                             <div>
-                                <b style={{fontSize:'1rem'}}>{chatName}</b>
-                                {isPartnerTyping && <div className="typing-status">печатает...</div>}
+                                <b>{chatName}</b>
+                                {isPartnerTyping && <div style={{fontSize:'0.7rem', color:'#adff2f'}}>печатает...</div>}
                             </div>
                         </div>
                     </header>
                     <div className="chat-area">
                         {messages.map((m, i) => (
-                            <div key={i} className={`msg-wrap ${m.uid === user.uid ? 'my-wrap' : ''}`} onClick={() => setReplyTo({text: m.text, name: m.uid === user.uid ? 'Вы' : chatName})}>
+                            <div key={i} className={`msg-wrap ${m.uid === user.uid ? 'my-wrap' : ''}`}>
                                 <div className={`msg-bubble ${m.uid === user.uid ? 'my-bubble' : 'other-bubble'}`}>
-                                    {m.reply && <div className="reply-in-msg"><b>{m.reply.name}</b><br/>{m.reply.text}</div>}
-                                    {m.text}
-                                    <span className="msg-time">{new Date(m.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                                    {m.audio ? <audio src={m.audio} controls className="audio-msg" /> : <span>{m.text}</span>}
+                                    <div className="msg-time">{new Date(m.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
                                 </div>
                             </div>
                         ))}
-
-                        {/* Индикатор печати в виде сообщения с троеточием */}
-                        {isPartnerTyping && (
-                            <div className="msg-wrap">
-                                <div className="msg-bubble other-bubble" style={{display:'flex', gap:4, padding:'12px 16px', alignItems:'center'}}>
-                                    <div className="dot"></div>
-                                    <div className="dot"></div>
-                                    <div className="dot"></div>
-                                </div>
-                            </div>
-                        )}
-                        
-                        <div ref={scrollRef} />
+                        <div ref={chatEndRef}></div>
                     </div>
-                    <div className="input-bar-container">
-                        {replyTo && <div className="reply-preview"><span>Ответ для <b>{replyTo.name}</b>: {replyTo.text}</span><span onClick={()=>setReplyTo(null)}>✕</span></div>}
-                        <div className="input-bar">
-                            <input value={text} onChange={handleTyping} onKeyPress={e => e.key === 'Enter' && sendMessage()} placeholder="Сообщение..." />
+                    <div className="input-bar">
+                        <input value={text} onChange={handleTyping} placeholder={isRecording ? "Запись..." : "Сообщение..."} disabled={isRecording} onKeyDown={e => e.key === 'Enter' && sendMessage()} />
+                        {text.trim() === "" ? (
+                            <button className={`mic-btn ${isRecording ? 'recording' : ''}`} onMouseDown={startRecording} onMouseUp={stopRecording} onTouchStart={startRecording} onTouchEnd={stopRecording}>🎤</button>
+                        ) : (
                             <button className="send-btn" onClick={sendMessage}>➤</button>
-                        </div>
+                        )}
                     </div>
                 </>
             );
         }
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     </script>
 </body>
 </html>
