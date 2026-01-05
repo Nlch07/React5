@@ -12,7 +12,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getDatabase, ref, push, onValue, set, update, get, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, push, onValue, set, update, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDppgpIDC7lsqkyKanmWnt6aRmkV8sRfck",
@@ -30,7 +30,7 @@
         
         window.fb = { 
             auth, db, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, 
-            updateProfile, ref, push, onValue, set, update, get, remove
+            updateProfile, ref, push, onValue, set, update, get 
         };
     </script>
 
@@ -41,6 +41,11 @@
         
         #root { display: flex; flex-direction: column; height: 100vh; height: 100dvh; background: white; max-width: 500px; margin: 0 auto; position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
 
+        /* Вход */
+        .login-screen { position: fixed; inset: 0; background: linear-gradient(135deg, #1565C0 0%, #1e88e5 100%); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 1000; }
+        .login-card { background: white; padding: 40px 30px; border-radius: 28px; width: 100%; max-width: 360px; text-align: center; }
+        .google-btn { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; padding: 14px; border: 1px solid #ddd; border-radius: 14px; background: white; font-weight: 600; cursor: pointer; margin-top: 20px; }
+
         header { background: var(--main-blue); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; z-index: 10; }
         .logo { font-size: 1.5rem; font-weight: 900; margin: 0; }
 
@@ -48,13 +53,9 @@
         .menu-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
         .btn { border: none; background: #f0f2f5; color: #333; padding: 8px 16px; border-radius: 20px; font-weight: 600; cursor: pointer; }
         .btn-online { background: var(--green); color: white; }
-        
-        /* Белая кнопка удаления */
-        .btn-delete { background: none; color: white; border: 1px solid white; padding: 5px 10px; font-size: 0.75rem; border-radius: 8px; cursor: pointer; opacity: 0.9; }
-        .btn-delete:active { opacity: 0.6; }
-
         .search-input { width: 100%; padding: 12px 15px; border-radius: 12px; border: none; background: #f0f2f5; outline: none; }
 
+        /* Онлайн список */
         .online-panel { padding: 15px; background: #fff; border-bottom: 8px solid #f0f2f5; }
         .section-title { font-size: 0.7rem; font-weight: 800; color: #999; text-transform: uppercase; margin-bottom: 10px; display: block; }
         .online-list { display: flex; gap: 15px; overflow-x: auto; padding-bottom: 5px; }
@@ -62,22 +63,28 @@
         .online-user span { font-size: 0.75rem; width: 65px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
         .content-scroll { flex: 1; overflow-y: auto; }
+        
+        /* Список чатов */
         .chat-item { display: flex; align-items: center; padding: 15px; border-bottom: 1px solid #f5f5f5; cursor: pointer; }
         .avatar { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; flex-shrink: 0; background: #ccc; position: relative; }
         .online-indicator { position: absolute; bottom: 2px; right: 2px; width: 12px; height: 12px; background: var(--green); border: 2px solid white; border-radius: 50%; }
         .chat-info { flex: 1; margin-left: 15px; overflow: hidden; }
         .chat-name { font-weight: 700; display: block; margin-bottom: 2px; }
         .chat-preview { font-size: 0.9rem; color: #65676b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+
+        /* КРАСНЫЙ КРУЖОК УВЕДОМЛЕНИЙ */
         .notif-badge { background: var(--red); color: white; border-radius: 50%; min-width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold; margin-top: 5px; }
 
-        .chat-area { flex: 1; overflow-y: auto; background: #e5ddd5; padding: 15px; display: flex; flex-direction: column; gap: 4px; }
-        .date-separator { align-self: center; background: rgba(225, 245, 254, 0.9); color: #546e7a; padding: 5px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; margin: 12px 0; text-transform: uppercase; }
+        /* Окно чата */
+        .chat-area { flex: 1; overflow-y: auto; background: #e5ddd5; padding: 15px; display: flex; flex-direction: column; gap: 8px; }
         .msg-wrap { display: flex; width: 100%; cursor: pointer; }
         .my-wrap { justify-content: flex-end; }
-        .msg-bubble { max-width: 80%; padding: 8px 12px; border-radius: 14px; font-size: 0.95rem; box-shadow: 0 1px 1px rgba(0,0,0,0.1); word-break: break-word; }
-        .my-bubble { background: #dcf8c6; border-bottom-right-radius: 2px; }
-        .other-bubble { background: white; border-bottom-left-radius: 2px; }
+        .msg-bubble { max-width: 80%; padding: 8px 12px; border-radius: 18px; font-size: 0.95rem; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
+        .my-bubble { background: #dcf8c6; border-bottom-right-radius: 4px; }
+        .other-bubble { background: white; border-bottom-left-radius: 4px; }
         .msg-time { font-size: 0.65rem; color: #888; display: block; text-align: right; margin-top: 4px; }
+
+        /* Цитата (Reply) */
         .reply-in-msg { background: rgba(0,0,0,0.05); border-left: 3px solid var(--main-blue); padding: 5px; border-radius: 4px; font-size: 0.8rem; margin-bottom: 5px; }
 
         .input-bar-container { background: white; border-top: 1px solid #eee; display: flex; flex-direction: column; }
@@ -85,10 +92,28 @@
         .input-bar { padding: 10px 15px; display: flex; gap: 10px; align-items: center; }
         .input-bar input { flex: 1; border: none; padding: 12px 18px; border-radius: 24px; background: #f0f2f5; outline: none; }
         .send-btn { background: var(--main-blue); color: white; border: none; border-radius: 50%; width: 42px; height: 42px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        
+        .typing-status { font-size: 0.75rem; color: #adff2f; font-weight: bold; }
+        /* Анимация печатающих точек */
+.typing-bubble {
+    display: flex;
+    gap: 4px;
+    padding: 12px 16px !important;
+}
+.dot {
+    width: 6px;
+    height: 6px;
+    background: #999;
+    border-radius: 50%;
+    animation: typingAnimation 1.4s infinite;
+}
+.dot:nth-child(2) { animation-delay: 0.2s; }
+.dot:nth-child(3) { animation-delay: 0.4s; }
 
-        .login-screen { position: fixed; inset: 0; background: linear-gradient(135deg, #1565C0 0%, #1e88e5 100%); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 1000; }
-        .login-card { background: white; padding: 40px 30px; border-radius: 28px; width: 100%; max-width: 360px; text-align: center; }
-        .google-btn { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; padding: 14px; border: 1px solid #ddd; border-radius: 14px; background: white; font-weight: 600; cursor: pointer; margin-top: 20px; }
+@keyframes typingAnimation {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-4px); opacity: 1; }
+}
     </style>
 </head>
 <body>
@@ -107,6 +132,7 @@
             const [messages, setMessages] = useState([]);
             const [text, setText] = useState("");
             const [search, setSearch] = useState("");
+            const [inputName, setInputName] = useState("");
             const [isPartnerTyping, setIsPartnerTyping] = useState(false);
             const [replyTo, setReplyTo] = useState(null);
             const scrollRef = useRef();
@@ -114,6 +140,7 @@
             useEffect(() => {
                 return window.fb.onAuthStateChanged(window.fb.auth, u => {
                     setUser(u);
+                    if (u?.displayName) setInputName(u.displayName);
                 });
             }, []);
 
@@ -141,6 +168,8 @@
             useEffect(() => {
                 if (user && view === "chat") {
                     const chatId = [user.uid, activeChat].sort().join("_");
+                    
+                    // Сбрасываем уведомления при входе
                     window.fb.update(window.fb.ref(window.fb.db, `userChats/${user.uid}/${activeChat}`), { unread: 0 });
 
                     const msgUnsub = window.fb.onValue(window.fb.ref(window.fb.db, `messages/private/${chatId}`), s => {
@@ -156,16 +185,6 @@
                 }
             }, [view, activeChat, user]);
 
-            const getDateLabel = (timestamp) => {
-                const date = new Date(timestamp);
-                const now = new Date();
-                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-                const yesterday = today - 86400000;
-                if (timestamp >= today) return "Сегодня";
-                if (timestamp >= yesterday) return "Вчера";
-                return date.toLocaleDateString([], { day: 'numeric', month: 'long' });
-            };
-
             const handleTyping = (e) => {
                 setText(e.target.value);
                 const chatId = [user.uid, activeChat].sort().join("_");
@@ -180,54 +199,115 @@
                 if (!text.trim()) return;
                 const time = Date.now();
                 const chatId = [user.uid, activeChat].sort().join("_");
-                const msgData = { text, uid: user.uid, time, reply: replyTo ? { text: replyTo.text, name: replyTo.name } : null };
+                
+                const msgData = { 
+                    text, uid: user.uid, time, 
+                    reply: replyTo ? { text: replyTo.text, name: replyTo.name } : null 
+                };
+
                 window.fb.push(window.fb.ref(window.fb.db, `messages/private/${chatId}`), msgData);
-                window.fb.update(window.fb.ref(window.fb.db, `userChats/${user.uid}/${activeChat}`), { lastMsg: text, lastTime: time, partnerName: chatName, partnerUid: activeChat });
+                
+                window.fb.update(window.fb.ref(window.fb.db, `userChats/${user.uid}/${activeChat}`), { 
+                    lastMsg: text, lastTime: time, partnerName: chatName, partnerUid: activeChat 
+                });
+
                 const partnerRef = window.fb.ref(window.fb.db, `userChats/${activeChat}/${user.uid}`);
                 const snap = await window.fb.get(partnerRef);
                 const currentUnread = (snap.val()?.unread || 0);
-                window.fb.update(partnerRef, { lastMsg: text, lastTime: time, partnerName: user.displayName, partnerUid: user.uid, unread: currentUnread + 1 });
+
+                window.fb.update(partnerRef, { 
+                    lastMsg: text, lastTime: time, partnerName: user.displayName, partnerUid: user.uid,
+                    unread: currentUnread + 1
+                });
+
                 setText(""); setReplyTo(null);
                 window.fb.set(window.fb.ref(window.fb.db, `typing/${chatId}/${user.uid}`), false);
             };
 
-            const handleLogout = () => {
-                if (confirm("Вы уверены, что хотите выйти из аккаунта?")) {
-                    window.fb.signOut(window.fb.auth);
-                }
+            const login = async () => {
+                const provider = new window.fb.GoogleAuthProvider();
+                await window.fb.signInWithPopup(window.fb.auth, provider);
             };
 
-            const deleteChat = async () => {
-                if (confirm(`Вы уверены, что хотите удалить чат с "${chatName}"?`)) {
-                    await window.fb.remove(window.fb.ref(window.fb.db, `userChats/${user.uid}/${activeChat}`));
-                    setView("hub");
-                }
+            const finishRegistration = async () => {
+                await window.fb.updateProfile(window.fb.auth.currentUser, { displayName: inputName });
+                setUser({...window.fb.auth.currentUser, displayName: inputName});
             };
 
             if (!user) return (
-                <div className="login-screen">
-                    <div className="login-card">
-                        <h1 style={{color:'var(--main-blue)', fontSize:'2rem', marginBottom:10}}>AstikChat</h1>
-                        <button className="google-btn" onClick={() => window.fb.signInWithPopup(window.fb.auth, new window.fb.GoogleAuthProvider())}>
-                            <img src="https://www.gstatic.com/images/branding/product/1x/gsa_64dp.png" style={{width: '24px', height: '24px'}} alt="G" />
-                            Войти через Google
-                        </button>
-                    </div>
-                </div>
+<div className="login-screen">
+    <div className="login-card">
+        <h1 style={{color:'var(--main-blue)', fontSize:'2rem', marginBottom:10}}>AstikChat</h1>
+        <button className="google-btn" onClick={login}>
+            <img 
+                src="https://www.gstatic.com/images/branding/product/1x/gsa_64dp.png" 
+                style={{width: '24px', height: '24px'}} 
+                alt="Google logo"
+            />
+            Войти через Google
+        </button>
+    </div>
+</div>
+            );
+
+            if (!user.displayName) return (
+                <div className="login-screen"><div className="login-card">
+                    <h3>Ваш никнейм</h3>
+                    <input className="search-input" style={{margin:'15px 0', textAlign:'center'}} value={inputName} onChange={e => setInputName(e.target.value)} />
+                    <button className="btn btn-primary" style={{width:'100%', padding:12, color:'white', background:'var(--main-blue)'}} onClick={finishRegistration}>Начать</button>
+                </div></div>
             );
 
             if (view === "hub") {
+                const changeDisplayName = async () => {
+                    const newName = prompt("Введите новое имя:", user.displayName);
+                    if (newName && newName.trim() !== "" && newName.trim() !== user.displayName) {
+                        if (confirm(`Вы уверены, что хотите изменить имя на "${newName.trim()}"? Страница будет перезагружена.`)) {
+                            try {
+                                await window.fb.updateProfile(window.fb.auth.currentUser, { 
+                                    displayName: newName.trim() 
+                                });
+                                const onlineRef = window.fb.ref(window.fb.db, `presence/${user.uid}`);
+                                const snap = await window.fb.get(onlineRef);
+                                if (snap.exists()) {
+                                    await window.fb.update(onlineRef, { name: newName.trim() });
+                                }
+                                window.location.reload();
+                            } catch (e) {
+                                alert("Ошибка: " + e.message);
+                            }
+                        }
+                    }
+                };
+
+                const toggleOnline = () => {
+                    const isOnline = onlineUsers.some(u => u.uid === user.uid);
+                    if (isOnline) {
+                        window.fb.set(window.fb.ref(window.fb.db, `presence/${user.uid}`), null);
+                    } else {
+                        window.fb.set(window.fb.ref(window.fb.db, `presence/${user.uid}`), {
+                            name: user.displayName,
+                            lastSeen: Date.now()
+                        });
+                    }
+                };
+
                 return (
                     <>
-                        <header><h1 className="logo">AstikChat</h1><button className="btn" onClick={handleLogout}>Выход</button></header>
+                        <header>
+                            <h1 className="logo">AstikChat</h1>
+                            <button className="btn" onClick={() => confirm("Вы точно хотите выйти?") && window.fb.signOut(window.fb.auth)}>Выход</button>
+                        </header>
                         <div className="top-menu">
                             <div className="menu-row">
                                 <div style={{display:'flex', alignItems:'center', gap:10}}>
                                     <div className="avatar" style={{width:35, height:35, fontSize:'0.9rem', background:'var(--main-blue)'}}>{user.displayName ? user.displayName[0] : "?"}</div>
-                                    <b style={{fontSize:'0.9rem'}}>{user.displayName}</b>
+                                    <div style={{display:'flex', flexDirection:'column'}}>
+                                        <b style={{fontSize:'0.9rem'}}>{user.displayName}</b>
+                                        <span onClick={changeDisplayName} style={{fontSize:'0.7rem', color:'var(--main-blue)', cursor:'pointer', fontWeight:'600'}}>Изменить имя ✎</span>
+                                    </div>
                                 </div>
-                                <button className={`btn ${onlineUsers.some(u => u.uid === user.uid) ? '' : 'btn-online'}`} 
-                                        onClick={() => window.fb.set(window.fb.ref(window.fb.db, `presence/${user.uid}`), onlineUsers.some(u => u.uid === user.uid) ? null : { name: user.displayName, lastSeen: Date.now() })}>
+                                <button className={`btn ${onlineUsers.some(u => u.uid === user.uid) ? '' : 'btn-online'}`} onClick={toggleOnline}>
                                     {onlineUsers.some(u => u.uid === user.uid) ? "Уйти в тень" : "Я онлайн"}
                                 </button>
                             </div>
@@ -235,7 +315,7 @@
                         </div>
                         <div className="content-scroll">
                             <div className="online-panel">
-                                <span className="section-title">В сети</span>
+                                <span className="section-title">Сейчас в сети</span>
                                 <div className="online-list">
                                     {onlineUsers.map(u => (
                                         <div key={u.uid} className="online-user" onClick={() => u.uid !== user.uid && (setActiveChat(u.uid), setChatName(u.name), setView("chat"))}>
@@ -258,41 +338,91 @@
                         </div>
                     </>
                 );
+                return (
+                    <>
+<header>
+    <h1 className="logo">AstikChat</h1>
+    <button className="btn" onClick={() => {
+        if (confirm("Вы точно хотите выйти из аккаунта?")) {
+            window.fb.signOut(window.fb.auth);
+        }
+    }}>Выход</button>
+</header>
+                        <div className="top-menu">
+                            <div className="menu-row">
+                                <div style={{display:'flex', alignItems:'center', gap:10}}>
+                                    <div className="avatar" style={{width:35, height:35, fontSize:'0.9rem', background:'var(--main-blue)'}}>{user.displayName[0]}</div>
+                                    <b style={{fontSize:'0.9rem'}}>{user.displayName}</b>
+                                </div>
+                                <button className="btn btn-online" onClick={() => window.fb.set(window.fb.ref(window.fb.db, `presence/${user.uid}`), {name: user.displayName, lastSeen: Date.now()})}>Я онлайн</button>
+                            </div>
+                            <input className="search-input" placeholder="🔍 Поиск диалогов..." value={search} onChange={e => setSearch(e.target.value)} />
+                        </div>
+                        <div className="content-scroll">
+                            <div className="online-panel">
+                                <span className="section-title">Сейчас в сети</span>
+                                <div className="online-list">
+                                    {onlineUsers.map(u => (
+                                        <div key={u.uid} className="online-user" onClick={() => u.uid !== user.uid && (setActiveChat(u.uid), setChatName(u.name), setView("chat"))}>
+                                            <div className="avatar" style={{background: u.uid === user.uid ? 'var(--main-blue)' : '#eee', border: '2px solid var(--green)'}}>{u.name[0]}<div className="online-indicator"></div></div>
+                                            <span style={{fontWeight: u.uid === user.uid ? 'bold' : 'normal'}}>{u.uid === user.uid ? "Я" : u.name}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            {myChats.filter(c => c.partnerName?.toLowerCase().includes(search.toLowerCase())).map(c => (
+                                <div key={c.partnerUid} className="chat-item" onClick={() => {setActiveChat(c.partnerUid); setChatName(c.partnerName); setView("chat");}}>
+                                    <div className="avatar">{c.partnerName[0]}</div>
+                                    <div className="chat-info"><span className="chat-name">{c.partnerName}</span><span className="chat-preview">{c.lastMsg}</span></div>
+                                    <div style={{display:'flex', flexDirection:'column', alignItems:'flex-end'}}>
+                                        <span style={{fontSize:'0.7rem', color:'#999'}}>{new Date(c.lastTime).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                                        {c.unread > 0 && <div className="notif-badge">{c.unread}</div>}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </>
+                );
             }
 
             return (
                 <>
                     <header>
-                        <div style={{display:'flex', alignItems:'center', gap:12, flex: 1}}>
+                        <div style={{display:'flex', alignItems:'center', gap:15}}>
                             <span onClick={() => setView("hub")} style={{fontSize:'1.5rem', cursor:'pointer'}}>←</span>
                             <div className="avatar" style={{width:35, height:35, fontSize:'0.9rem'}}>{chatName[0]}</div>
-                            <div style={{flex: 1, overflow: 'hidden'}}>
-                                <b style={{fontSize:'1rem', display:'block', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{chatName}</b>
+                            <div>
+                                <b style={{fontSize:'1rem'}}>{chatName}</b>
                                 {isPartnerTyping && <div className="typing-status">печатает...</div>}
                             </div>
                         </div>
-                        <button className="btn-delete" onClick={deleteChat}>Удалить чат</button>
                     </header>
                     <div className="chat-area">
-                        {messages.map((m, i) => {
-                            const showDate = i === 0 || getDateLabel(messages[i-1].time) !== getDateLabel(m.time);
-                            return (
-                                <React.Fragment key={i}>
-                                    {showDate && <div className="date-separator">{getDateLabel(m.time)}</div>}
-                                    <div className={`msg-wrap ${m.uid === user.uid ? 'my-wrap' : ''}`} onClick={() => setReplyTo({text: m.text, name: m.uid === user.uid ? 'Вы' : chatName})}>
-                                        <div className={`msg-bubble ${m.uid === user.uid ? 'my-bubble' : 'other-bubble'}`}>
-                                            {m.reply && <div className="reply-in-msg"><b>{m.reply.name}</b><br/>{m.reply.text}</div>}
-                                            {m.text}
-                                            <span className="msg-time">{new Date(m.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
-                                        </div>
-                                    </div>
-                                </React.Fragment>
-                            );
-                        })}
+                        {messages.map((m, i) => (
+                            <div key={i} className={`msg-wrap ${m.uid === user.uid ? 'my-wrap' : ''}`} onClick={() => setReplyTo({text: m.text, name: m.uid === user.uid ? 'Вы' : chatName})}>
+                                <div className={`msg-bubble ${m.uid === user.uid ? 'my-bubble' : 'other-bubble'}`}>
+                                    {m.reply && <div className="reply-in-msg"><b>{m.reply.name}</b><br/>{m.reply.text}</div>}
+                                    {m.text}
+                                    <span className="msg-time">{new Date(m.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                                </div>
+                            </div>
+                        ))}
+
+                        {/* Индикатор печати в виде сообщения с троеточием */}
+                        {isPartnerTyping && (
+                            <div className="msg-wrap">
+                                <div className="msg-bubble other-bubble" style={{display:'flex', gap:4, padding:'12px 16px', alignItems:'center'}}>
+                                    <div className="dot"></div>
+                                    <div className="dot"></div>
+                                    <div className="dot"></div>
+                                </div>
+                            </div>
+                        )}
+                        
                         <div ref={scrollRef} />
                     </div>
                     <div className="input-bar-container">
-                        {replyTo && <div className="reply-preview"><span>Ответ для <b>{replyTo.name}</b></span><span onClick={()=>setReplyTo(null)}>✕</span></div>}
+                        {replyTo && <div className="reply-preview"><span>Ответ для <b>{replyTo.name}</b>: {replyTo.text}</span><span onClick={()=>setReplyTo(null)}>✕</span></div>}
                         <div className="input-bar">
                             <input value={text} onChange={handleTyping} onKeyPress={e => e.key === 'Enter' && sendMessage()} placeholder="Сообщение..." />
                             <button className="send-btn" onClick={sendMessage}>➤</button>
