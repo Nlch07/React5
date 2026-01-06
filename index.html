@@ -116,6 +116,9 @@
             const [isPartnerTyping, setIsPartnerTyping] = useState(false);
             const [replyTo, setReplyTo] = useState(null);
             const scrollRef = useRef();
+            
+            // НОВОЕ: Таймер для удержания сообщения
+            const holdTimer = useRef(null);
 
             useEffect(() => {
                 return window.fb.onAuthStateChanged(window.fb.auth, u => { setUser(u); });
@@ -147,7 +150,9 @@
                     const chatId = [user.uid, activeChat].sort().join("_");
                     window.fb.update(window.fb.ref(window.fb.db, `userChats/${user.uid}/${activeChat}`), { unread: 0 });
                     const msgUnsub = window.fb.onValue(window.fb.ref(window.fb.db, `messages/private/${chatId}`), s => {
-                        setMessages(s.val() ? Object.values(s.val()) : []);
+                        const data = s.val();
+                        // Превращаем объект сообщений в массив с сохранением ID для удаления
+                        setMessages(data ? Object.entries(data).map(([id, val]) => ({ id, ...val })) : []);
                         setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
                     });
                     const typingUnsub = window.fb.onValue(window.fb.ref(window.fb.db, `typing/${chatId}/${activeChat}`), s => {
@@ -176,7 +181,6 @@
                 return date.toLocaleDateString([], { day: 'numeric', month: 'long' });
             };
 
-            // ФУНКЦИЯ: СМЕНА ИМЕНИ + ПЕРЕЗАГРУЗКА
             const changeDisplayName = async () => {
                 const newName = prompt("Введите новое имя:", user.displayName);
                 if (newName && newName.trim() !== "" && newName.trim() !== user.displayName) {
@@ -194,7 +198,6 @@
                 }
             };
 
-            // ФУНКЦИЯ: ОНЛАЙН / В ТЕНЬ
             const toggleOnline = () => {
                 const isOnline = onlineUsers.some(u => u.uid === user.uid);
                 if (isOnline) {
@@ -229,6 +232,21 @@
                 window.fb.update(partnerRef, { lastMsg: text, lastTime: time, partnerName: user.displayName, partnerUid: user.uid, unread: currentUnread + 1 });
                 setText(""); setReplyTo(null);
                 window.fb.set(window.fb.ref(window.fb.db, `typing/${chatId}/${user.uid}`), false);
+            };
+
+            // НОВОЕ: Функции для удаления сообщений через удержание
+            const startHold = (msgId, isMy) => {
+                if (!isMy) return;
+                holdTimer.current = setTimeout(() => {
+                    if (confirm("Удалить это сообщение для всех?")) {
+                        const chatId = [user.uid, activeChat].sort().join("_");
+                        window.fb.remove(window.fb.ref(window.fb.db, `messages/private/${chatId}/${msgId}`));
+                    }
+                }, 800); // 0.8 секунды удержания
+            };
+
+            const stopHold = () => {
+                clearTimeout(holdTimer.current);
             };
 
             if (!user) return (
@@ -304,9 +322,17 @@
                         {messages.map((m, i) => {
                             const isNewDay = i === 0 || getDateLabel(messages[i-1].time) !== getDateLabel(m.time);
                             return (
-                                <React.Fragment key={i}>
+                                <React.Fragment key={m.id || i}>
                                     {isNewDay && <div className="date-separator">{getDateLabel(m.time)}</div>}
-                                    <div className={`msg-wrap ${m.uid === user.uid ? 'my-wrap' : ''}`} onClick={() => setReplyTo({text: m.text, name: m.uid === user.uid ? 'Вы' : chatName})}>
+                                    <div 
+                                        className={`msg-wrap ${m.uid === user.uid ? 'my-wrap' : ''}`} 
+                                        onClick={() => setReplyTo({text: m.text, name: m.uid === user.uid ? 'Вы' : chatName})}
+                                        onMouseDown={() => startHold(m.id, m.uid === user.uid)}
+                                        onMouseUp={stopHold}
+                                        onMouseLeave={stopHold}
+                                        onTouchStart={() => startHold(m.id, m.uid === user.uid)}
+                                        onTouchEnd={stopHold}
+                                    >
                                         <div className={`msg-bubble ${m.uid === user.uid ? 'my-bubble' : 'other-bubble'}`}>
                                             {m.reply && <div className="reply-in-msg"><b>{m.reply.name}</b><br/>{m.reply.text}</div>}
                                             {formatText(m.text)}
