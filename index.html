@@ -11,7 +11,11 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { 
+            getAuth, signInWithPopup, GoogleAuthProvider, GithubAuthProvider,
+            signInWithEmailAndPassword, createUserWithEmailAndPassword,
+            onAuthStateChanged, signOut, updateProfile 
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getDatabase, ref, push, onValue, set, update, get, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         const firebaseConfig = {
@@ -29,7 +33,9 @@
         const db = getDatabase(app);
         
         window.fb = { 
-            auth, db, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, 
+            auth, db, GoogleAuthProvider, GithubAuthProvider,
+            signInWithPopup, signOut, onAuthStateChanged, 
+            signInWithEmailAndPassword, createUserWithEmailAndPassword,
             updateProfile, ref, push, onValue, set, update, get, remove
         };
     </script>
@@ -48,7 +54,6 @@
         .menu-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
         .btn { border: none; background: #f0f2f5; color: #333; padding: 8px 16px; border-radius: 20px; font-weight: 600; cursor: pointer; }
         .btn-online { background: #4CAF50; color: white; }
-        
         .btn-delete { background: none; color: white; border: 1px solid white; padding: 5px 12px; border-radius: 8px; font-size: 0.8rem; cursor: pointer; font-weight: 600; }
 
         .search-input { width: 100%; padding: 12px 15px; border-radius: 12px; border: none; background: #f0f2f5; outline: none; }
@@ -60,19 +65,18 @@
 
         .content-scroll { flex: 1; overflow-y: auto; }
         .chat-item { display: flex; align-items: center; padding: 15px; border-bottom: 1px solid #f5f5f5; cursor: pointer; }
-        .avatar { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; flex-shrink: 0; background: #ccc; position: relative; }
+        .avatar { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; flex-shrink: 0; background: #ccc; position: relative; overflow: hidden; }
+        .avatar img { width: 100%; height: 100%; object-fit: cover; }
         .online-indicator { position: absolute; bottom: 2px; right: 2px; width: 12px; height: 12px; background: #4CAF50; border: 2px solid white; border-radius: 50%; }
+        
         .chat-info { flex: 1; margin-left: 15px; overflow: hidden; }
         .chat-name { font-weight: 700; display: block; margin-bottom: 2px; }
         .chat-preview { font-size: 0.9rem; color: #65676b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
-        
         .unread-badge { background: var(--green); color: white; border-radius: 50%; min-width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold; margin-top: 5px; }
 
         .chat-area { flex: 1; overflow-y: auto; background: #e5ddd5; padding: 15px; display: flex; flex-direction: column; gap: 6px; }
         .date-separator { align-self: center; background: rgba(0,0,0,0.08); color: #555; padding: 4px 12px; border-radius: 10px; font-size: 0.75rem; font-weight: 600; margin: 10px 0; text-transform: uppercase; }
-        
-        /* НОВАЯ НАДПИСЬ НЕПРОЧИТАННЫЕ */
-        .unread-separator { align-self: center; background: #fff; color: #666; padding: 6px 20px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; margin: 15px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); width: 100%; text-align: center; position: relative; }
+        .unread-separator { align-self: center; background: #fff; color: #666; padding: 6px 20px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; margin: 15px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); width: 100%; text-align: center; }
 
         .msg-wrap { display: flex; width: 100%; cursor: pointer; }
         .my-wrap { justify-content: flex-end; }
@@ -81,7 +85,6 @@
         .other-bubble { background: white; border-bottom-left-radius: 2px; }
         .msg-time { font-size: 0.65rem; color: #888; display: block; text-align: right; margin-top: 4px; }
         .chat-link { color: #007bff; text-decoration: underline; }
-
         .reply-in-msg { background: rgba(0,0,0,0.05); border-left: 3px solid var(--main-blue); padding: 5px; border-radius: 4px; font-size: 0.8rem; margin-bottom: 5px; }
 
         .input-bar-container { background: white; border-top: 1px solid #eee; display: flex; flex-direction: column; }
@@ -96,9 +99,23 @@
         .dot:nth-child(3) { animation-delay: 0.4s; }
         @keyframes typingAnimation { 0%, 60%, 100% { transform: translateY(0); opacity: 0.4; } 30% { transform: translateY(-4px); opacity: 1; } }
 
+        /* AUTH STYLES */
         .login-screen { position: fixed; inset: 0; background: linear-gradient(135deg, #1565C0 0%, #1e88e5 100%); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 1000; }
-        .login-card { background: white; padding: 40px 30px; border-radius: 28px; width: 100%; max-width: 360px; text-align: center; }
-        .google-btn { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; padding: 14px; border: 1px solid #ddd; border-radius: 14px; background: white; font-weight: 600; cursor: pointer; margin-top: 20px; }
+        .login-card { background: white; padding: 35px 30px; border-radius: 32px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .email-form { display: flex; flex-direction: column; gap: 12px; margin: 20px 0; }
+        .input-group { position: relative; width: 100%; }
+        .input-group input { width: 100%; padding: 14px 16px; border-radius: 14px; border: 1.5px solid #eee; outline: none; font-size: 1rem; transition: 0.3s; }
+        .input-group input:focus { border-color: var(--main-blue); }
+        .pass-toggle { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #999; font-size: 1.2rem; user-select: none; }
+        .login-submit { background: var(--main-blue); color: white; border: none; padding: 15px; border-radius: 14px; font-weight: 800; cursor: pointer; font-size: 1rem; transition: 0.3s; }
+        .login-submit:active { transform: scale(0.98); }
+        .divider { margin: 25px 0; position: relative; border-top: 1px solid #eee; }
+        .divider span { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: white; padding: 0 15px; color: #bbb; font-size: 0.8rem; font-weight: 600; }
+        .social-btns { display: flex; flex-direction: column; gap: 10px; }
+        .social-btn { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; padding: 13px; border: 1.5px solid #eee; border-radius: 14px; background: white; font-weight: 700; cursor: pointer; transition: 0.3s; }
+        .social-btn:hover { background: #f9f9f9; }
+        .github-btn { background: #24292e; color: white; border: none; }
+        .github-btn:hover { background: #1a1e22; }
     </style>
 </head>
 <body>
@@ -119,10 +136,13 @@
             const [search, setSearch] = useState("");
             const [isPartnerTyping, setIsPartnerTyping] = useState(false);
             const [replyTo, setReplyTo] = useState(null);
-            
-            // НОВОЕ: состояние для отслеживания индекса первого непрочитанного сообщения
             const [unreadIndex, setUnreadIndex] = useState(-1);
             
+            // Auth States
+            const [email, setEmail] = useState('');
+            const [password, setPassword] = useState('');
+            const [showPass, setShowPass] = useState(false);
+
             const scrollRef = useRef();
             const holdTimer = useRef(null);
 
@@ -154,8 +174,6 @@
             useEffect(() => {
                 if (user && view === "chat" && activeChat) {
                     const chatId = [user.uid, activeChat].sort().join("_");
-                    
-                    // Узнаем, сколько непрочитанных было до входа
                     const chatData = myChats.find(c => c.partnerUid === activeChat);
                     const count = chatData?.unread || 0;
 
@@ -164,17 +182,14 @@
                         const msgList = data ? Object.entries(data).map(([id, val]) => ({ id, ...val })) : [];
                         setMessages(msgList);
                         
-                        // Если есть непрочитанные, ставим маркер перед ними
                         if (count > 0 && msgList.length >= count) {
                             setUnreadIndex(msgList.length - count);
                         } else {
                             setUnreadIndex(-1);
                         }
-
                         setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
                     });
 
-                    // Сбрасываем счетчик в БД
                     window.fb.update(window.fb.ref(window.fb.db, `userChats/${user.uid}/${activeChat}`), { unread: 0 });
 
                     const typingUnsub = window.fb.onValue(window.fb.ref(window.fb.db, `typing/${chatId}/${activeChat}`), s => {
@@ -184,6 +199,32 @@
                 }
             }, [view, activeChat, user]);
 
+            // AUTH LOGIC
+            const handleEmailAuth = async (e) => {
+                e.preventDefault();
+                if(!email || !password) return;
+                try {
+                    // Пробуем войти, если ошибка - пробуем создать аккаунт
+                    await window.fb.signInWithEmailAndPassword(window.fb.auth, email, password)
+                        .catch(async (err) => {
+                            if(err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+                                const res = await window.fb.createUserWithEmailAndPassword(window.fb.auth, email, password);
+                                await window.fb.updateProfile(res.user, { displayName: email.split('@')[0] });
+                            } else {
+                                throw err;
+                            }
+                        });
+                } catch (err) { alert("Ошибка доступа: " + err.message); }
+            };
+
+            const handleSocialAuth = async (providerType) => {
+                try {
+                    const provider = new window.fb[providerType]();
+                    await window.fb.signInWithPopup(window.fb.auth, provider);
+                } catch (err) { alert("Ошибка: " + err.message); }
+            };
+
+            // CHAT LOGIC
             const formatText = (txt) => {
                 const urlRegex = /(https?:\/\/[^\s]+)/g;
                 return txt.split(urlRegex).map((part, i) => {
@@ -206,15 +247,13 @@
             const changeDisplayName = async () => {
                 const newName = prompt("Введите новое имя:", user.displayName);
                 if (newName && newName.trim() !== "" && newName.trim() !== user.displayName) {
-                    if (confirm(`Изменить имя на "${newName.trim()}"?`)) {
-                        try {
-                            await window.fb.updateProfile(window.fb.auth.currentUser, { displayName: newName.trim() });
-                            const onlineRef = window.fb.ref(window.fb.db, `presence/${user.uid}`);
-                            const snap = await window.fb.get(onlineRef);
-                            if (snap.exists()) await window.fb.update(onlineRef, { name: newName.trim() });
-                            window.location.reload();
-                        } catch (e) { alert("Ошибка: " + e.message); }
-                    }
+                    try {
+                        await window.fb.updateProfile(window.fb.auth.currentUser, { displayName: newName.trim() });
+                        const onlineRef = window.fb.ref(window.fb.db, `presence/${user.uid}`);
+                        const snap = await window.fb.get(onlineRef);
+                        if (snap.exists()) await window.fb.update(onlineRef, { name: newName.trim() });
+                        window.location.reload();
+                    } catch (e) { alert("Ошибка: " + e.message); }
                 }
             };
 
@@ -258,7 +297,7 @@
                     partnerUid: user.uid, unread: currentUnread + 1 
                 });
 
-                setText(""); setReplyTo(null); setUnreadIndex(-1); // Скрываем линию после отправки
+                setText(""); setReplyTo(null); setUnreadIndex(-1);
                 window.fb.set(window.fb.ref(window.fb.db, `typing/${chatId}/${user.uid}`), false);
             };
 
@@ -277,8 +316,30 @@
             if (!user) return (
                 <div className="login-screen">
                     <div className="login-card">
-                        <h1 style={{color:'var(--main-blue)'}}>AstikChat</h1>
-                        <button className="google-btn" onClick={() => window.fb.signInWithPopup(window.fb.auth, new window.fb.GoogleAuthProvider())}>Войти через Google</button>
+                        <h1 style={{color:'var(--main-blue)', margin:0}}>AstikChat</h1>
+                        <p style={{color:'#999', fontSize:'0.9rem', marginBottom: 20}}>Войдите, чтобы продолжить</p>
+
+                        <form className="email-form" onSubmit={handleEmailAuth}>
+                            <div className="input-group">
+                                <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
+                            </div>
+                            <div className="input-group">
+                                <input type={showPass ? "text" : "password"} placeholder="Пароль" value={password} onChange={e => setPassword(e.target.value)} required />
+                                <span className="pass-toggle" onClick={() => setShowPass(!showPass)}>{showPass ? "🔒" : "👁️"}</span>
+                            </div>
+                            <button type="submit" className="login-submit">Войти / Создать аккаунт</button>
+                        </form>
+
+                        <div className="divider"><span>ИЛИ ВОЙТИ ЧЕРЕЗ</span></div>
+
+                        <div className="social-btns">
+                            <button className="social-btn" onClick={() => handleSocialAuth('GoogleAuthProvider')}>
+                                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20"/> Google
+                            </button>
+                            <button className="social-btn github-btn" onClick={() => handleSocialAuth('GithubAuthProvider')}>
+                                <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" width="20" style={{filter:'invert(1)'}}/> GitHub
+                            </button>
+                        </div>
                     </div>
                 </div>
             );
@@ -292,7 +353,9 @@
                     <div className="top-menu">
                         <div className="menu-row">
                             <div style={{display:'flex', alignItems:'center', gap:10}}>
-                                <div className="avatar" style={{width:35, height:35, background:'var(--main-blue)'}}>{user.displayName?.[0]}</div>
+                                <div className="avatar" style={{width:35, height:35, background:'var(--main-blue)'}}>
+                                    {user.photoURL ? <img src={user.photoURL} /> : user.displayName?.[0]}
+                                </div>
                                 <div style={{display:'flex', flexDirection:'column'}}>
                                     <b>{user.displayName}</b>
                                     <span onClick={changeDisplayName} style={{fontSize:'0.7rem', color:'var(--main-blue)', cursor:'pointer', fontWeight:'600'}}>Изменить имя ✎</span>
@@ -311,7 +374,7 @@
                                 {onlineUsers.map(u => (
                                     <div key={u.uid} className="online-user" onClick={() => u.uid !== user.uid && (setActiveChat(u.uid), setChatName(u.name), setView("chat"))}>
                                         <div className="avatar" style={{background: u.uid === user.uid ? 'var(--main-blue)' : '#eee', border: '2px solid var(--green)'}}>{u.name?.[0]}<div className="online-indicator"></div></div>
-                                        <span style={{fontWeight: u.uid === user.uid ? 'bold' : 'normal'}}>{u.uid === user.uid ? "Я" : u.name}</span>
+                                        <span style={{fontWeight: u.uid === user.uid ? 'bold' : 'normal', fontSize:'0.8rem'}}>{u.uid === user.uid ? "Я" : u.name}</span>
                                     </div>
                                 ))}
                             </div>
@@ -349,14 +412,10 @@
                         {messages.map((m, i) => {
                             const isNewDay = i === 0 || getDateLabel(messages[i-1].time) !== getDateLabel(m.time);
                             const isFirstUnread = i === unreadIndex;
-                            
                             return (
                                 <React.Fragment key={m.id || i}>
                                     {isNewDay && <div className="date-separator">{getDateLabel(m.time)}</div>}
-                                    
-                                    {/* РАЗДЕЛИТЕЛЬ НЕПРОЧИТАННЫХ СООБЩЕНИЙ */}
                                     {isFirstUnread && <div className="unread-separator">Непрочитанные сообщения</div>}
-
                                     <div 
                                         className={`msg-wrap ${m.uid === user.uid ? 'my-wrap' : ''}`} 
                                         onClick={() => setReplyTo({text: m.text, name: m.uid === user.uid ? 'Вы' : chatName})}
