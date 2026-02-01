@@ -14,7 +14,7 @@
         import { 
             getAuth, signInWithPopup, GoogleAuthProvider, GithubAuthProvider,
             signInWithEmailAndPassword, createUserWithEmailAndPassword,
-            onAuthStateChanged, signOut, updateProfile 
+            onAuthStateChanged, signOut, signInAnonymously, updateProfile 
         } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getDatabase, ref, push, onValue, set, update, get, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
@@ -34,7 +34,7 @@
         
         window.fb = { 
             auth, db, GoogleAuthProvider, GithubAuthProvider,
-            signInWithPopup, signOut, onAuthStateChanged, 
+            signInWithPopup, signOut, signInAnonymously, onAuthStateChanged, 
             signInWithEmailAndPassword, createUserWithEmailAndPassword,
             updateProfile, ref, push, onValue, set, update, get, remove
         };
@@ -121,8 +121,16 @@
 <body>
     <div id="root"></div>
 
-    <script type="text/babel">
+<script type="text/babel">
         const { useState, useEffect, useRef } = React;
+        
+        const BOT_ID = "ASTIK_BOT_ID";
+        const BOT_PHRASES = [
+            "67",
+            "Ты можешь удалять сообщения удерживая их пол секунды",
+            "Ты можешь ответить на сообщение нажав на него",
+            "Если ты хочешь начать общение с человеком нажми кнопку 'Я онлайн'",
+        ];
 
         function App() {
             const [user, setUser] = useState(null);
@@ -138,7 +146,6 @@
             const [replyTo, setReplyTo] = useState(null);
             const [unreadIndex, setUnreadIndex] = useState(-1);
             
-            // Auth States
             const [email, setEmail] = useState('');
             const [password, setPassword] = useState('');
             const [showPass, setShowPass] = useState(false);
@@ -146,8 +153,23 @@
             const scrollRef = useRef();
             const holdTimer = useRef(null);
 
+            // --- 1. АНОНИМНЫЙ ВХОД ---
+            const handleAnonymousAuth = async () => {
+                try {
+                    const res = await window.fb.signInAnonymously(window.fb.auth);
+                    // Генерируем временное имя для анонима
+                    const anonName = "Гость " + Math.floor(Math.random() * 1000);
+                    await window.fb.updateProfile(res.user, { displayName: anonName });
+                    setUser({ ...res.user, displayName: anonName });
+                } catch (err) {
+                    alert("Ошибка анонимного входа: " + err.message);
+                }
+            };
+
             useEffect(() => {
-                return window.fb.onAuthStateChanged(window.fb.auth, u => { setUser(u); });
+                return window.fb.onAuthStateChanged(window.fb.auth, u => { 
+                    setUser(u); 
+                });
             }, []);
 
             useEffect(() => {
@@ -157,7 +179,8 @@
                         const active = Object.entries(val)
                             .map(([uid, data]) => ({ uid, ...data }))
                             .filter(u => (Date.now() - u.lastSeen < 5 * 60 * 1000)); 
-                        setOnlineUsers(active);
+                        
+                        setOnlineUsers([{ uid: BOT_ID, name: "Бот", lastSeen: Date.now() }, ...active]);
                     });
                 }
             }, [user]);
@@ -167,6 +190,26 @@
                     return window.fb.onValue(window.fb.ref(window.fb.db, `userChats/${user.uid}`), s => {
                         const val = s.val();
                         setMyChats(val ? Object.values(val).sort((a,b) => b.lastTime - a.lastTime) : []);
+                        
+                        if (!val || !val[BOT_ID]) {
+                            const botTime = Date.now();
+                            const welcomeMsg = "Привет! Я бот созданный Астиком. Напиши мне что-нибудь!";
+                            const chatId = [user.uid, BOT_ID].sort().join("_");
+
+                            window.fb.update(window.fb.ref(window.fb.db, `userChats/${user.uid}/${BOT_ID}`), {
+                                lastMsg: welcomeMsg,
+                                lastTime: botTime,
+                                partnerName: "Бот",
+                                partnerUid: BOT_ID,
+                                unread: 1
+                            });
+
+                            window.fb.push(window.fb.ref(window.fb.db, `messages/private/${chatId}`), {
+                                text: welcomeMsg,
+                                uid: BOT_ID,
+                                time: botTime
+                            });
+                        }
                     });
                 }
             }, [user]);
@@ -197,22 +240,18 @@
                     });
                     return () => { msgUnsub(); typingUnsub(); };
                 }
-            }, [view, activeChat, user]);
+            }, [view, activeChat, user, myChats]);
 
-            // AUTH LOGIC
             const handleEmailAuth = async (e) => {
                 e.preventDefault();
                 if(!email || !password) return;
                 try {
-                    // Пробуем войти, если ошибка - пробуем создать аккаунт
                     await window.fb.signInWithEmailAndPassword(window.fb.auth, email, password)
                         .catch(async (err) => {
                             if(err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
                                 const res = await window.fb.createUserWithEmailAndPassword(window.fb.auth, email, password);
                                 await window.fb.updateProfile(res.user, { displayName: email.split('@')[0] });
-                            } else {
-                                throw err;
-                            }
+                            } else { throw err; }
                         });
                 } catch (err) { alert("Ошибка доступа: " + err.message); }
             };
@@ -224,7 +263,6 @@
                 } catch (err) { alert("Ошибка: " + err.message); }
             };
 
-            // CHAT LOGIC
             const formatText = (txt) => {
                 const urlRegex = /(https?:\/\/[^\s]+)/g;
                 return txt.split(urlRegex).map((part, i) => {
@@ -263,41 +301,58 @@
                     window.fb.set(window.fb.ref(window.fb.db, `presence/${user.uid}`), null);
                 } else {
                     window.fb.set(window.fb.ref(window.fb.db, `presence/${user.uid}`), {
-                        name: user.displayName, lastSeen: Date.now()
+                        name: user.displayName || "Аноним", lastSeen: Date.now()
                     });
                 }
             };
 
             const handleTyping = (e) => {
                 setText(e.target.value);
-                const chatId = [user.uid, activeChat].sort().join("_");
-                window.fb.set(window.fb.ref(window.fb.db, `typing/${chatId}/${user.uid}`), true);
-                clearTimeout(window.tOut);
-                window.tOut = setTimeout(() => {
-                    window.fb.set(window.fb.ref(window.fb.db, `typing/${chatId}/${user.uid}`), false);
-                }, 2000);
+                if (activeChat && activeChat !== BOT_ID) {
+                    const chatId = [user.uid, activeChat].sort().join("_");
+                    window.fb.set(window.fb.ref(window.fb.db, `typing/${chatId}/${user.uid}`), true);
+                    clearTimeout(window.tOut);
+                    window.tOut = setTimeout(() => {
+                        window.fb.set(window.fb.ref(window.fb.db, `typing/${chatId}/${user.uid}`), false);
+                    }, 2000);
+                }
             };
-
+            
             const sendMessage = async () => {
                 if (!text.trim()) return;
                 const time = Date.now(), chatId = [user.uid, activeChat].sort().join("_");
-                const msgData = { text, uid: user.uid, time, reply: replyTo ? { text: replyTo.text, name: replyTo.name } : null };
+                const currentText = text;
+                const msgData = { text: currentText, uid: user.uid, time, reply: replyTo ? { text: replyTo.text, name: replyTo.name } : null };
                 
+                setText(""); setReplyTo(null); setUnreadIndex(-1);
+
                 window.fb.push(window.fb.ref(window.fb.db, `messages/private/${chatId}`), msgData);
                 window.fb.update(window.fb.ref(window.fb.db, `userChats/${user.uid}/${activeChat}`), { 
-                    lastMsg: text, lastTime: time, partnerName: chatName, partnerUid: activeChat 
+                    lastMsg: currentText, lastTime: time, partnerName: chatName, partnerUid: activeChat 
                 });
                 
-                const partnerRef = window.fb.ref(window.fb.db, `userChats/${activeChat}/${user.uid}`);
-                const snap = await window.fb.get(partnerRef);
-                const currentUnread = (snap.val()?.unread || 0);
-                
-                window.fb.update(partnerRef, { 
-                    lastMsg: text, lastTime: time, partnerName: user.displayName, 
-                    partnerUid: user.uid, unread: currentUnread + 1 
-                });
-
-                setText(""); setReplyTo(null); setUnreadIndex(-1);
+                if (activeChat !== BOT_ID) {
+                    const partnerRef = window.fb.ref(window.fb.db, `userChats/${activeChat}/${user.uid}`);
+                    const snap = await window.fb.get(partnerRef);
+                    const currentUnread = (snap.val()?.unread || 0);
+                    window.fb.update(partnerRef, { 
+                        lastMsg: currentText, lastTime: time, partnerName: user.displayName || "Аноним", 
+                        partnerUid: user.uid, unread: currentUnread + 1 
+                    });
+                } else {
+                    window.fb.set(window.fb.ref(window.fb.db, `typing/${chatId}/${BOT_ID}`), true);
+                    setTimeout(() => {
+                        const botTime = Date.now();
+                        const randomPhrase = BOT_PHRASES[Math.floor(Math.random() * BOT_PHRASES.length)];
+                        window.fb.push(window.fb.ref(window.fb.db, `messages/private/${chatId}`), {
+                            text: randomPhrase, uid: BOT_ID, time: botTime
+                        });
+                        window.fb.update(window.fb.ref(window.fb.db, `userChats/${user.uid}/${BOT_ID}`), {
+                            lastMsg: randomPhrase, lastTime: botTime, partnerName: "Бот", partnerUid: BOT_ID 
+                        });
+                        window.fb.set(window.fb.ref(window.fb.db, `typing/${chatId}/${BOT_ID}`), false);
+                    }, 1500);
+                }
                 window.fb.set(window.fb.ref(window.fb.db, `typing/${chatId}/${user.uid}`), false);
             };
 
@@ -313,37 +368,41 @@
 
             const stopHold = () => clearTimeout(holdTimer.current);
 
+            // --- ЭКРАН ЛОГИНА С АНОНИМНОСТЬЮ ---
             if (!user) return (
                 <div className="login-screen">
                     <div className="login-card">
                         <h1 style={{color:'var(--main-blue)', margin:0}}>AstikChat</h1>
-                        <p style={{color:'#999', fontSize:'0.9rem', marginBottom: 20}}>Войдите, чтобы продолжить</p>
-
+                        <p style={{color:'#999', fontSize:'0.9rem', marginBottom: 20}}>Выберите способ входа</p>
+                        
                         <form className="email-form" onSubmit={handleEmailAuth}>
-                            <div className="input-group">
-                                <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
-                            </div>
+                            <div className="input-group"><input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required /></div>
                             <div className="input-group">
                                 <input type={showPass ? "text" : "password"} placeholder="Пароль" value={password} onChange={e => setPassword(e.target.value)} required />
                                 <span className="pass-toggle" onClick={() => setShowPass(!showPass)}>{showPass ? "🔒" : "👁️"}</span>
                             </div>
-                            <button type="submit" className="login-submit">Войти / Создать аккаунт</button>
+                            <button type="submit" className="login-submit">Войти / Регистрация</button>
                         </form>
 
-                        <div className="divider"><span>ИЛИ ВОЙТИ ЧЕРЕЗ</span></div>
+                        <div className="divider"><span>ИЛИ</span></div>
+
+                        <button className="social-btn anon-btn" onClick={handleAnonymousAuth} style={{marginBottom: 10, background: '#f5f5f5', border: '1px solid #ddd'}}>
+                             👤 Войти анонимно
+                        </button>
 
                         <div className="social-btns">
                             <button className="social-btn" onClick={() => handleSocialAuth('GoogleAuthProvider')}>
-                                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20"/> Google
+                                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18"/> Google
                             </button>
                             <button className="social-btn github-btn" onClick={() => handleSocialAuth('GithubAuthProvider')}>
-                                <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" width="20" style={{filter:'invert(1)'}}/> GitHub
+                                <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" width="18" style={{filter:'invert(1)'}}/> GitHub
                             </button>
                         </div>
                     </div>
                 </div>
             );
 
+            // --- ГЛАВНЫЙ ЭКРАН (HUB) ---
             if (view === "hub") return (
                 <>
                     <header>
@@ -354,10 +413,10 @@
                         <div className="menu-row">
                             <div style={{display:'flex', alignItems:'center', gap:10}}>
                                 <div className="avatar" style={{width:35, height:35, background:'var(--main-blue)'}}>
-                                    {user.photoURL ? <img src={user.photoURL} /> : user.displayName?.[0]}
+                                    {user.photoURL ? <img src={user.photoURL} /> : (user.displayName?.[0] || "?")}
                                 </div>
                                 <div style={{display:'flex', flexDirection:'column'}}>
-                                    <b>{user.displayName}</b>
+                                    <b>{user.displayName || "Аноним"}</b>
                                     <span onClick={changeDisplayName} style={{fontSize:'0.7rem', color:'var(--main-blue)', cursor:'pointer', fontWeight:'600'}}>Изменить имя ✎</span>
                                 </div>
                             </div>
@@ -373,7 +432,7 @@
                             <div className="online-list">
                                 {onlineUsers.map(u => (
                                     <div key={u.uid} className="online-user" onClick={() => u.uid !== user.uid && (setActiveChat(u.uid), setChatName(u.name), setView("chat"))}>
-                                        <div className="avatar" style={{background: u.uid === user.uid ? 'var(--main-blue)' : '#eee', border: '2px solid var(--green)'}}>{u.name?.[0]}<div className="online-indicator"></div></div>
+                                        <div className="avatar" style={{background: u.uid === user.uid ? 'var(--main-blue)' : (u.uid === BOT_ID ? '#546E7A' : '#eee'), border: '2px solid var(--green)'}}>{(u.name?.[0] || "?")}<div className="online-indicator"></div></div>
                                         <span style={{fontWeight: u.uid === user.uid ? 'bold' : 'normal', fontSize:'0.8rem'}}>{u.uid === user.uid ? "Я" : u.name}</span>
                                     </div>
                                 ))}
@@ -381,7 +440,7 @@
                         </div>
                         {myChats.filter(c => c.partnerName?.toLowerCase().includes(search.toLowerCase())).map(c => (
                             <div key={c.partnerUid} className="chat-item" onClick={() => {setActiveChat(c.partnerUid); setChatName(c.partnerName); setView("chat");}}>
-                                <div className="avatar">{c.partnerName?.[0]}</div>
+                                <div className="avatar" style={{background: c.partnerUid === BOT_ID ? '#546E7A' : '#ccc'}}>{c.partnerName?.[0]}</div>
                                 <div className="chat-info"><span className="chat-name">{c.partnerName}</span><span className="chat-preview">{c.lastMsg}</span></div>
                                 <div style={{display:'flex', flexDirection:'column', alignItems:'flex-end', gap:2}}>
                                     <span style={{fontSize:'0.7rem', color: c.unread > 0 ? 'var(--green)' : '#999', fontWeight: c.unread > 0 ? 'bold' : 'normal'}}>
@@ -395,18 +454,19 @@
                 </>
             );
 
+            // --- ОКНО ЧАТА ---
             return (
                 <>
                     <header>
                         <div style={{display:'flex', alignItems:'center', gap:12}}>
                             <span onClick={() => {setView("hub"); setUnreadIndex(-1);}} style={{fontSize:'1.5rem', cursor:'pointer'}}>←</span>
-                            <div className="avatar" style={{width:35, height:35}}>{chatName?.[0]}</div>
+                            <div className="avatar" style={{width:35, height:35, background: activeChat === BOT_ID ? '#546E7A' : '#ccc'}}>{chatName?.[0]}</div>
                             <div>
                                 <b style={{fontSize:'1rem'}}>{chatName}</b>
                                 {isPartnerTyping && <div className="typing-status">печатает...</div>}
                             </div>
                         </div>
-                        <button className="btn-delete" onClick={() => confirm("Удалить этот чат?") && (window.fb.remove(window.fb.ref(window.fb.db, `userChats/${user.uid}/${activeChat}`)), setView("hub"))}>Удалить</button>
+                        <button className="btn-delete" onClick={() => confirm("Удалить этот чат?") && (activeChat !== BOT_ID ? window.fb.remove(window.fb.ref(window.fb.db, `userChats/${user.uid}/${activeChat}`)) : alert("Бота нельзя удалить!"), setView("hub"))}>Удалить</button>
                     </header>
                     <div className="chat-area">
                         {messages.map((m, i) => {
@@ -420,8 +480,7 @@
                                         className={`msg-wrap ${m.uid === user.uid ? 'my-wrap' : ''}`} 
                                         onClick={() => setReplyTo({text: m.text, name: m.uid === user.uid ? 'Вы' : chatName})}
                                         onMouseDown={() => startHold(m.id, m.uid === user.uid)}
-                                        onMouseUp={stopHold}
-                                        onMouseLeave={stopHold}
+                                        onMouseUp={stopHold} onMouseLeave={stopHold}
                                         onTouchStart={() => startHold(m.id, m.uid === user.uid)}
                                         onTouchEnd={stopHold}
                                     >
@@ -434,13 +493,6 @@
                                 </React.Fragment>
                             );
                         })}
-                        {isPartnerTyping && (
-                            <div className="msg-wrap">
-                                <div className="msg-bubble other-bubble" style={{display:'flex', gap:4, padding:'12px 16px', alignItems:'center'}}>
-                                    <div className="dot"></div><div className="dot"></div><div className="dot"></div>
-                                </div>
-                            </div>
-                        )}
                         <div ref={scrollRef} />
                     </div>
                     <div className="input-bar-container">
