@@ -459,43 +459,55 @@
             return (
                 <>
                     <header>
-                        <div style={{display:'flex', alignItems:'center', gap:12}}>
-                            <span onClick={() => {setView("hub"); setUnreadIndex(-1);}} style={{fontSize:'1.5rem', cursor:'pointer'}}>←</span>
-                            <div className="avatar" style={{width:35, height:35, background: activeChat === BOT_ID ? '#546E7A' : '#ccc'}}>{chatName?.[0]}</div>
-                            <div>
-                                <b style={{fontSize:'1rem'}}>{chatName}</b>
-                                {isPartnerTyping && <div className="typing-status">печатает...</div>}
-                            </div>
-                        </div>
-                        <button className="btn-delete" onClick={() => confirm("Удалить этот чат?") && (activeChat !== BOT_ID ? window.fb.remove(window.fb.ref(window.fb.db, `userChats/${user.uid}/${activeChat}`)) : alert("Бота нельзя удалить!"), setView("hub"))}>Удалить</button>
-                    </header>
-                    <div className="chat-area">
-                        {messages.map((m, i) => {
-                            const isNewDay = i === 0 || getDateLabel(messages[i-1].time) !== getDateLabel(m.time);
-                            const isFirstUnread = i === unreadIndex;
-                            return (
-                                <React.Fragment key={m.id || i}>
-                                    {isNewDay && <div className="date-separator">{getDateLabel(m.time)}</div>}
-                                    {isFirstUnread && <div className="unread-separator">Непрочитанные сообщения</div>}
-                                    <div 
-                                        className={`msg-wrap ${m.uid === user.uid ? 'my-wrap' : ''}`} 
-                                        onClick={() => setReplyTo({text: m.text, name: m.uid === user.uid ? 'Вы' : chatName})}
-                                        onMouseDown={() => startHold(m.id, m.uid === user.uid)}
-                                        onMouseUp={stopHold} onMouseLeave={stopHold}
-                                        onTouchStart={() => startHold(m.id, m.uid === user.uid)}
-                                        onTouchEnd={stopHold}
-                                    >
-                                        <div className={`msg-bubble ${m.uid === user.uid ? 'my-bubble' : 'other-bubble'}`}>
-                                            {m.reply && <div className="reply-in-msg"><b>{m.reply.name}</b><br/>{m.reply.text}</div>}
-                                            {formatText(m.text)}
-                                            <span className="msg-time">{new Date(m.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
-                                        </div>
-                                    </div>
-                                </React.Fragment>
-                            );
-                        })}
-                        <div ref={scrollRef} />
+    <div style={{display:'flex', alignItems:'center', gap:12}}>
+        <span onClick={() => {setView("hub"); setUnreadIndex(-1);}} style={{fontSize:'1.5rem', cursor:'pointer'}}>←</span>
+        <div className="avatar" style={{width:35, height:35, background: activeChat === BOT_ID ? '#546E7A' : '#ccc'}}>{chatName?.[0]}</div>
+        <div>
+            <b style={{fontSize:'1rem'}}>{chatName}</b>
+            {isPartnerTyping && <div className="typing-status">печатает...</div>}
+        </div>
+    </div>
+    <button className="btn-delete" onClick={() => confirm("Удалить этот чат?") && (activeChat !== BOT_ID ? window.fb.remove(window.fb.ref(window.fb.db, `userChats/${user.uid}/${activeChat}`)) : alert("Бота нельзя удалить!"), setView("hub"))}>Удалить</button>
+</header>
+<div className="chat-area">
+    {messages.map((m, i) => {
+        const isNewDay = i === 0 || getDateLabel(messages[i-1].time) !== getDateLabel(m.time);
+        const isFirstUnread = i === unreadIndex;
+        return (
+            <React.Fragment key={m.id || i}>
+                {isNewDay && <div className="date-separator">{getDateLabel(m.time)}</div>}
+                {isFirstUnread && <div className="unread-separator">Непрочитанные сообщения</div>}
+                <div 
+                    className={`msg-wrap ${m.uid === user.uid ? 'my-wrap' : ''}`} 
+                    onClick={() => setReplyTo({text: m.text, name: m.uid === user.uid ? 'Вы' : chatName})}
+                    onMouseDown={() => startHold(m.id, m.uid === user.uid)}
+                    onMouseUp={stopHold} onMouseLeave={stopHold}
+                    onTouchStart={() => startHold(m.id, m.uid === user.uid)}
+                    onTouchEnd={stopHold}
+                >
+                    <div className={`msg-bubble ${m.uid === user.uid ? 'my-bubble' : 'other-bubble'}`}>
+                        {m.reply && <div className="reply-in-msg"><b>{m.reply.name}</b><br/>{m.reply.text}</div>}
+                        {formatText(m.text)}
+                        <span className="msg-time">{new Date(m.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
                     </div>
+                </div>
+            </React.Fragment>
+        );
+    })}
+
+    {/* АНИМАЦИЯ ТРЕХ ТОЧЕК */}
+    {isPartnerTyping && (
+        <div className="msg-wrap" style={{justifyContent: 'flex-start', margin: '5px 0 10px 0'}}>
+            <div className="msg-bubble other-bubble" style={{display:'flex', gap:'5px', padding:'12px 18px', alignItems:'center', borderRadius:'20px'}}>
+                <div className="dot" style={{background:'#bbb'}}></div>
+                <div className="dot" style={{background:'#bbb'}}></div>
+                <div className="dot" style={{background:'#bbb'}}></div>
+            </div>
+        </div>
+    )}
+    
+    <div ref={scrollRef} />
+</div>
                     <div className="input-bar-container">
                         {replyTo && <div className="reply-preview"><span>Ответ <b>{replyTo.name}</b>: {replyTo.text}</span><span onClick={()=>setReplyTo(null)} style={{cursor:'pointer'}}>✕</span></div>}
                         <div className="input-bar">
