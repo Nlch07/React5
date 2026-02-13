@@ -356,7 +356,7 @@ if (!user) return (
             
             {/* 2. Заголовки */}
             <h1>Sign In</h1>
-            <p className="desc">Добро пожаловать в AstikChat,введите электронную почту и пароль</p>
+            <p className="desc">Добро пожаловать в AstikChat, введите электронную почту и пароль</p>
 
             {/* 3. Форма входа */}
             <form className="email-form" onSubmit={handleEmailAuth}>
@@ -368,7 +368,6 @@ if (!user) return (
                     <span className="pass-toggle" onClick={() => setShowPass(!showPass)} style={{position:'absolute', right:15, top:'50%', transform:'translateY(-50%)', cursor:'pointer'}}>{showPass ? "👁️" : "🔒"}</span>
                 </div>
                 <i class="fa-solid fa-key"></i>
-                <div style={{textAlign: 'right'}}><a href="#" style={{color: '#005662', fontSize: '13px', textDecoration: 'none'}}>Forgot password?</a></div>
                 
                 <button type="submit" className="login-submit">Continue</button>
             </form>
