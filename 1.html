@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Задание №1: Матричные игры (Строгий стиль)</title>
+    <style>
+        body { font-family: 'Times New Roman', Times, serif; background-color: #fff; padding: 20px; color: #000; }
+        .container { max-width: 1000px; margin: auto; }
+        h2 { text-align: center; text-transform: uppercase; border-bottom: 2px solid #000; padding-bottom: 10px; }
+        h3{color:red;}
+        .setup { margin-bottom: 20px; border: 1px solid #000; padding: 15px; background: #f9f9f9; }
+        input[type="number"] { width: 50px; padding: 5px; border: 1px solid #000; }
+        button { background: #fff; border: 1px solid #000; padding: 8px 15px; cursor: pointer; font-weight: bold; margin-top: 5px; }
+        button:hover { background: #eee; }
+
+        table { border-collapse: collapse; width: auto; margin-top: 20px; }
+        th, td { border: 1px solid black; padding: 8px; text-align: center; }
+        th { background-color: #f0f0f0; }
+        
+        .matrix-input { width: 45px; text-align: center; border: 1px solid #ccc; font-family: 'Times New Roman', serif; }
+        .saddle-point { background-color: #d4edda !important; border: 2px solid #28a745 !important; font-weight: bold; }
+        
+        .res-label { font-weight: bold; background-color: #f0f0f0; }
+        .summary { margin-top: 20px; border: 1px solid #000; padding: 15px; line-height: 1.5; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Задание №1: Поиск седловой точки матрицы</h2>
+    <h3>Халакоев А ПОСВТиАС 3 группа</h3>
+    
+    <div class="setup">
+        <label>Строк (m): </label> <input type="number" id="rows" value="3">
+        <label> Столбцов (n): </label> <input type="number" id="cols" value="4">
+        <button onclick="createGrid()">Создать таблицу</button>
+    </div>
+
+    <div id="tableContainer"></div>
+    <div id="resultOutput"></div>
+</div>
+
+<script>
+    function createGrid() {
+        const r = parseInt(document.getElementById('rows').value);
+        const c = parseInt(document.getElementById('cols').value);
+        
+        let html = '<table><thead>';
+        // Первая строка заголовка
+        html += `<tr><th rowspan="2">Стратегии А</th><th colspan="${c}">Стратегии B</th><th rowspan="2" class="res-label">min a<sub>ij</sub></th></tr><tr>`;
+        for (let j = 1; j <= c; j++) html += `<th>B<sub>${j}</sub></th>`;
+        html += '</tr></thead><tbody>';
+
+        // Основные строки
+        for (let i = 1; i <= r; i++) {
+            html += `<tr><th class="res-label">A<sub>${i}</sub></th>`;
+            for (let j = 1; j <= c; j++) {
+                // Предустановка значений для удобства (8, 4, 10, 6...)
+                const def = [[8,4,10,6],[9,5,11,7],[7,3,9,5]];
+                let val = (def[i-1] && def[i-1][j-1]) ? def[i-1][j-1] : 0;
+                html += `<td><input type="number" class="matrix-input" id="cell_${i-1}_${j-1}" value="${val}"></td>`;
+            }
+            html += `<td id="rowMin_${i-1}" style="font-weight:bold;">-</td></tr>`;
+        }
+
+        // Нижняя строка максимумов
+        html += `<tr><th class="res-label">max a<sub>ij</sub></th>`;
+        for (let j = 1; j <= c; j++) {
+            html += `<td id="colMax_${j-1}" style="font-weight:bold;">-</td>`;
+        }
+        html += `<td id="alphaBeta" style="font-weight:bold;">-</td></tr></tbody></table>`;
+        
+        html += `<button onclick="calculate()">Найти решение</button>`;
+        
+        document.getElementById('tableContainer').innerHTML = html;
+        document.getElementById('resultOutput').innerHTML = '';
+    }
+
+    function calculate() {
+        const r = parseInt(document.getElementById('rows').value);
+        const c = parseInt(document.getElementById('cols').value);
+        let matrix = [];
+
+        for (let i = 0; i < r; i++) {
+            let row = [];
+            for (let j = 0; j < c; j++) {
+                let val = parseFloat(document.getElementById(`cell_${i}_${j}`).value) || 0;
+                row.push(val);
+                document.getElementById(`cell_${i}_${j}`).classList.remove('saddle-point');
+            }
+            matrix.push(row);
+        }
+
+        // Минимумы строк
+        let rowMins = matrix.map(row => Math.min(...row));
+        rowMins.forEach((min, i) => document.getElementById(`rowMin_${i}`).innerText = min);
+
+        // Максимумы столбцов
+        let colMaxs = [];
+        for (let j = 0; j < c; j++) {
+            let col = [];
+            for (let i = 0; i < r; i++) col.push(matrix[i][j]);
+            let max = Math.max(...col);
+            colMaxs.push(max);
+            document.getElementById(`colMax_${j}`).innerText = max;
+        }
+
+        const alpha = Math.max(...rowMins);
+        const beta = Math.min(...colMaxs);
+        document.getElementById('alphaBeta').innerHTML = `&alpha;=${alpha}<br>&beta;=${beta}`;
+
+        let output = document.getElementById('resultOutput');
+        if (alpha === beta) {
+            let coords = [];
+            for (let i = 0; i < r; i++) {
+                for (let j = 0; j < c; j++) {
+                    if (matrix[i][j] === rowMins[i] && matrix[i][j] === colMaxs[j]) {
+                        document.getElementById(`cell_${i}_${j}`).classList.add('saddle-point');
+                        coords.push(`A<sub>${i+1}</sub>B<sub>${j+1}</sub>`);
+                    }
+                }
+            }
+            output.innerHTML = `<div class="summary">
+                <strong>Результат:</strong> &alpha; = &beta; = ${alpha}.<br>
+                Игра имеет седловую точку. Оптимальные стратегии: ${coords.join(', ')}.<br>
+                Цена игры V = ${alpha}.
+            </div>`;
+        } else {
+            output.innerHTML = `<div class="summary" style="border-color: red;">
+                <strong>Результат:</strong> &alpha; (${alpha}) &ne; &beta; (${beta}).<br>
+                Седловой точки в чистых стратегиях нет.
+            </div>`;
+        }
+    }
+
+    createGrid();
+</script>
+
+</body>
+</html>
+

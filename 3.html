@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Задание №3: Статистические игры</title>
+    <style>
+        body { font-family: 'Times New Roman', serif; background: #fff; padding: 20px; color: #000; }
+        .container { max-width: 1100px; margin: auto; }
+        h2 { text-align: center; text-transform: uppercase; border-bottom: 2px solid #000; padding-bottom: 10px; }
+        h3{color:red;}
+        .box { border: 1px solid #000; padding: 15px; margin-bottom: 20px; background: #f9f9f9; }
+        
+        table { border-collapse: collapse; width: 100%; margin-top: 15px; }
+        th, td { border: 1px solid black; padding: 8px; text-align: center; }
+        th { background: #f0f0f0; }
+        
+        input[type="number"] { width: 65px; border: 1px solid #000; text-align: center; font-family: 'Times New Roman', serif; }
+        button { background: #fff; border: 1px solid #000; padding: 8px 20px; cursor: pointer; font-weight: bold; margin-top: 10px; transition: 0.2s; }
+        button:hover { background: #eee; }
+        
+        .optimal { background-color: #d4edda !important; border: 2px solid #28a745 !important; font-weight: bold; }
+        .result-section { margin-top: 30px; }
+        h3 { border-left: 5px solid #000; padding-left: 10px; margin-top: 40px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Статистические игры: Принятие решений в условиях неопределенности</h2>
+    <h3>Халакоев А ПОСВТиАС 3 группа</h3>
+    
+    <div class="box">
+        <strong>1. Настройка размерности:</strong> <br><br>
+        Строк (Стратегии A): <input type="number" id="rows" value="3">
+        Столбцов (Состояния П): <input type="number" id="cols" value="3">
+        <button onclick="buildMatrix()">Создать таблицу ввода</button>
+    </div>
+
+    <div id="inputArea"></div>
+
+    <div id="criteriaSelect" class="box" style="display:none;">
+        <strong>2. Выбор критериев и параметров:</strong><br><br>
+        <label><input type="checkbox" id="checkBayes" checked> Критерии Байеса и Лапласа</label><br>
+        <label><input type="checkbox" id="checkWald" checked> Критерий Вальда (Максимин)</label><br>
+        <label><input type="checkbox" id="checkSavage" checked> Критерий Сэвиджа (Минимаксный риск)</label><br>
+        <label><input type="checkbox" id="checkHurwitz" checked> Критерий Гурвица</label> 
+        (Коэф. &gamma;: <input type="number" id="h_gamma" value="0.5" step="0.1" min="0" max="1">)
+        <br><br>
+        <button onclick="calculateAll()">Рассчитать и вывести таблицы</button>
+        <button onclick="saveToFile()">Сохранить результат в файл</button>
+    </div>
+
+    <div id="outputArea" class="result-section"></div>
+</div>
+
+<script>
+    // Функция вывода дроби без сокращения
+    function rawFraction(num, den) {
+        if (num === 0) return "0";
+        // Если делится нацело — выводим целое, иначе — прямую дробь
+        return (num % den === 0) ? (num / den).toString() : num + "/" + den;
+    }
+
+    function buildMatrix() {
+        const r = parseInt(document.getElementById('rows').value);
+        const c = parseInt(document.getElementById('cols').value);
+        
+        let html = '<h3>Матрица выигрышей и вероятностей</h3><table><thead><tr><th></th>';
+        for(let j=1; j<=c; j++) html += `<th>П<sub>${j}</sub></th>`;
+        html += '</tr></thead><tbody>';
+
+        for(let i=1; i<=r; i++) {
+            html += `<tr><th>A<sub>${i}</sub></th>`;
+            for(let j=1; j<=c; j++) {
+                html += `<td><input type="number" class="cell" data-r="${i-1}" data-c="${j-1}" value="0"></td>`;
+            }
+            html += '</tr>';
+        }
+        
+        html += `<tr><th title="Вероятности состояний природы">Вероятности P<sub>j</sub></th>`;
+        for(let j=0; j<c; j++) {
+            html += `<td><input type="number" class="prob" data-c="${j}" value="1" title="Числитель"> / <input type="number" class="prob-den" id="pden_${j}" value="${c}" title="Знаменатель"></td>`;
+        }
+        html += '</tr></tbody></table>';
+
+        document.getElementById('inputArea').innerHTML = html;
+        document.getElementById('criteriaSelect').style.display = 'block';
+    }
+
+    function calculateAll() {
+        const rows = parseInt(document.getElementById('rows').value);
+        const cols = parseInt(document.getElementById('cols').value);
+        const cells = document.querySelectorAll('.cell');
+        
+        // Сбор матрицы выигрышей
+        let A = Array.from({length: rows}, () => new Array(cols).fill(0));
+        cells.forEach(c => A[c.dataset.r][c.dataset.c] = parseFloat(c.value) || 0);
+
+        // Сбор вероятностей (в виде дробей)
+        let pNum = Array.from(document.querySelectorAll('.prob')).map(i => parseFloat(i.value) || 0);
+        let pDen = Array.from(document.querySelectorAll('.prob-den')).map(i => parseFloat(i.value) || 1);
+
+        let out = document.getElementById('outputArea');
+        out.innerHTML = '';
+
+        // --- КРИТЕРИИ БАЙЕСА И ЛАПЛАСА ---
+        if(document.getElementById('checkBayes').checked) {
+            // Математическое ожидание для Байеса (суммируем числители, считая общий знаменатель)
+            let bayesScores = A.map(row => {
+                let sumStr = "";
+                let totalVal = 0;
+                // Для простоты приводим к общему знаменателю (произведению всех pDen)
+                let commonDen = pDen.reduce((a, b) => a * b, 1);
+                row.forEach((val, j) => {
+                    totalVal += val * pNum[j] * (commonDen / pDen[j]);
+                });
+                return rawFraction(totalVal, commonDen);
+            });
+
+            // Лаплас (среднее арифметическое)
+            let laplaceScores = A.map(row => {
+                let sum = row.reduce((a, b) => a + b, 0);
+                return rawFraction(sum, cols);
+            });
+
+            renderTable("Критерии Байеса и Лапласа (с. 48)", ["B (Байес)", "L (Лаплас)"], [bayesScores, laplaceScores], A);
+        }
+
+        // --- КРИТЕРИЙ ВАЛЬДА И ГУРВИЦА ---
+        if(document.getElementById('checkWald').checked || document.getElementById('checkHurwitz').checked) {
+            let wald = A.map(row => Math.min(...row));
+            let gamma = parseFloat(document.getElementById('h_gamma').value);
+            
+            let hurwitz = A.map(row => {
+                let val = gamma * Math.min(...row) + (1 - gamma) * Math.max(...row);
+                return Number.isInteger(val) ? val.toString() : val.toFixed(2);
+            });
+
+            let colsNames = [];
+            let data = [];
+            if(document.getElementById('checkWald').checked) { colsNames.push("W (Вальд)"); data.push(wald); }
+            if(document.getElementById('checkHurwitz').checked) { colsNames.push(`H (Гурвиц, γ=${gamma})`); data.push(hurwitz); }
+
+            renderTable("Критерии Вальда и Гурвица (с. 51)", colsNames, data, A);
+        }
+
+        // --- КРИТЕРИЙ СЭВИДЖА ---
+        if(document.getElementById('checkSavage').checked) {
+            let colMaxs = new Array(cols).fill(-Infinity);
+            for(let j=0; j<cols; j++) {
+                for(let i=0; i<rows; i++) if(A[i][j] > colMaxs[j]) colMaxs[j] = A[i][j];
+            }
+            // Матрица рисков R
+            let R = A.map(row => row.map((val, j) => colMaxs[j] - val));
+            let savage = R.map(row => Math.max(...row));
+            
+            renderTable("Критерий Сэвиджа (Матрица рисков)", ["S (Сэвидж)"], [savage], R);
+        }
+    }
+
+    function renderTable(title, colNames, scores, matrix) {
+        let html = `<h3>${title}</h3><table><thead><tr><th>Стратегия</th>`;
+        for(let j=0; j<matrix[0].length; j++) html += `<th>П<sub>${j+1}</sub></th>`;
+        colNames.forEach(name => html += `<th>${name}</th>`);
+        html += '</tr></thead><tbody>';
+
+        // Поиск лучших индексов для подсветки
+        let bestIndices = colNames.map((name, idx) => {
+            let s = scores[idx].map(v => {
+                if(typeof v === 'string' && v.includes('/')) {
+                    let parts = v.split('/'); return parseFloat(parts[0]) / parseFloat(parts[1]);
+                }
+                return parseFloat(v);
+            });
+            // Для Сэвиджа (S) ищем МИНИМУМ риска, для остальных МАКСИМУМ выигрыша
+            let bestVal = name.startsWith("S") ? Math.min(...s) : Math.max(...s);
+            return s.indexOf(bestVal);
+        });
+
+        for(let i=0; i<matrix.length; i++) {
+            html += `<tr><td>A<sub>${i+1}</sub></td>`;
+            for(let j=0; j<matrix[0].length; j++) html += `<td>${matrix[i][j]}</td>`;
+            colNames.forEach((name, idx) => {
+                let isBest = (bestIndices[idx] === i) ? 'class="optimal"' : '';
+                html += `<td ${isBest}>${scores[idx][i]}</td>`;
+            });
+            html += '</tr>';
+        }
+        html += '</tbody></table>';
+        document.getElementById('outputArea').innerHTML += html;
+    }
+
+    function saveToFile() {
+        let content = document.getElementById('outputArea').innerText;
+        if(!content) { alert("Сначала выполните расчет"); return; }
+        const blob = new Blob([content], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'statistic_games_report.txt';
+        a.click();
+    }
+</script>
+</body>
+</html>
